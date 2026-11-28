@@ -2,7 +2,7 @@
 // (every `.gt-access` its panels hold) saying when the user may not save to it and how to get there
 // (req/shell/annotate/no-save), Save (req/shell/extractions/save) and the list of an image's extractions (req/shell/extractions/list).
 "use strict";
-import { folderOf, save, held, files, filesIn, subfolderId, rows, marksOf, own, personKey, personFile } from "./truth_folders.js";
+import { folderOf, save, held, files, filesIn, subfolderId, rows, marksOf, own, personKey } from "./truth_folders.js";
 import { asLoaded } from "./as_loaded.js";
 
 const SAY = {
@@ -83,8 +83,8 @@ export function truthTagger({ account, remote, place, image, on, may }) {
     },
     // the user's own extraction in the image's subfolder already found, or null: its one listing
     async mineIn(sub) {
-      const email = account.email(), name = email && await personFile(email);
-      return name ? (await filesIn(reader, sub)).find((f) => f.name === name) || null : null;
+      const email = account.email(), key = email && await personKey(email);
+      return key ? (await filesIn(reader, sub)).find((f) => f.by === key) || null : null;
     },
     // the user's own extraction of the image open, its entry as truth_folders.js files() gives it, or null: two listings and no
     // file read, for an image from the remote store only (req/shell/ground-truth/draft-offer)

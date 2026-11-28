@@ -46,6 +46,14 @@ def test_a_listing_passes_over_what_is_no_extraction_and_reads_a_runs_name(out):
     assert listing['other'] == []
 
 
+def test_a_file_of_the_older_name_is_that_persons_until_they_have_an_x_file(out):
+    # req/shell/extractions/list: gt_<email>.json, saved before x_ names, is read as the person whose email it holds
+    o = out['older']
+    assert o['alone'] == [['gt_Old@X.org.json', o['key']]] and o['own'] == 'gt_Old@X.org.json'
+    x = 'x_' + o['key'] + '.json'
+    assert o['both'] == [x] and o['ownBoth'] == x and o['inSub'] == [x]
+
+
 def test_a_persons_own_extraction_is_found_from_two_listings_and_nothing_is_read(out):
     o = out['own']
     # another person's file is not theirs; an image with no subfolder has none

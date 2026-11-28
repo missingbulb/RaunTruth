@@ -56,13 +56,7 @@
     "Ruler": {
       "steady": "hidden in every state of this study",
       "rule": [
-        {"is": "hidden", "req": "req/shell/image/toolbar", "about": "the study hides them: its view.hide names them"}
-      ]
-    },
-    "Grid": {
-      "steady": "hidden in every state of this study",
-      "rule": [
-        {"is": "hidden", "req": "req/shell/image/toolbar", "about": "the study hides them: its view.hide names them"}
+        {"is": "hidden", "req": "req/shell/image/toolbar", "about": "the study hides it: its view.hide names it"}
       ]
     },
     "Upload": {

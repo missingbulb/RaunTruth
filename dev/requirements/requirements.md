@@ -670,7 +670,12 @@ nobody has decided: what the page does there is not a requirement yet.
   once, in one request, and keeps it in the browser until Drive gives the file a different SHA-256.
   An image the index names with the SHA-256 Drive gives for it now shows its preview and, a TIFF, what it
   holds (`req/shell/drive/stacks`; a PNG or JPEG shows no 2D or channel tags) with no read of its own: a flat image's colour picture, a stack's mini-volume drawn
-  turned a little, its channels in their own colours, and turning while the pointer is over its row.
+  turned a little, its channels in their own colours, and turning while the pointer is over its row. A stack's
+  mini-volume is as deep, for its width, as the stack is: its slices' spacing over its pixels' width, the file's
+  spacing first and the study's (`view.spacing`) when the file gives none, the slices as far apart as the pixels
+  are wide while either is unknown (set by the owner on 2026-11-27: the vascular stacks' previews did not look
+  1 µm apart). So the index records each stack's width in pixels and its pixels' width in µm, and an entry from an
+  older file that lacks them is stale, Update previews making it again.
   An image the index lacks, or names with another SHA-256 (it changed since the file was made), is
   read as without the file (`req/shell/drive/dialog`, `req/shell/drive/stacks`). The download waits, like every other, while Drive
   throttles the site (`req/shell/drive/throttle`). Manage storage counts each folder's file with its study's thumbnails. Test:
@@ -699,7 +704,7 @@ nobody has decided: what the page does there is not a requirement yet.
   rows in view and the next 10 as the thumbnails are (`req/shell/drive/dialog`) and only while Show thumbnails is on.
   What each file holds is remembered in the browser, so it is read once. A file whose header says
   neither shows nothing. When a stack is opened from Drive, its thumbnail is a small 3D picture of
-  the whole stack, turned a little to show its depth, its channels in their own colours (two in green
+  the whole stack, turned a little to show its depth, as deep as `req/shell/drive/previews` draws a stack's mini-volume, its channels in their own colours (two in green
   and magenta), drawn from the file the page already has with
   no further download; a flat image's stays the one `req/shell/drive/dialog` describes. Test:
   `web-tests/test_drive_shapes_page.py`.
@@ -757,6 +762,11 @@ nobody has decided: what the page does there is not a requirement yet.
   next Save writes the user's own extraction with `base`, the id of the file it was edited from, leaving that file
   unchanged. Tests: `web-tests/test_annotate_mode_page.py`, `web-tests/test_extractions_page.py`,
   `web-tests/test_truth_folders.py`.
+
+  Set by the owner on 2026-11-28, after a tagger's three Analysis Files, saved before 2026-11-23 as `gt_<email>.json`,
+  listed as none. A file of that older name is read as that person's, the key of its email as for `x_<key>.json`, labelled
+  the same and never by the email; where the person also has an `x_` file the older one is passed over, so a save after it
+  lists one file, not two. Saving still writes the `x_` file only. Test: `web-tests/test_truth_folders.py`.
   </details>
 
 - `req/shell/extractions/marks-shown` Load study images shows, per image, whether your extraction is saved, GT or official, and whether another's was marked.
@@ -1193,7 +1203,7 @@ nobody has decided: what the page does there is not a requirement yet.
   only says where other data lies in the file (the pixels' offsets, a thumbnail's) stays unlisted. The bit depth is the file's
   own, even where the page shows the image in 8 bits. What the file does not carry goes unsaid: set by the owner on 2026-11-10, no
   line says the microscope or acquisition is missing, and with no image open the box names none and shows no
-  details line, the empty viewer saying it already (`web-tests/test_image_box_page.py`). Set by the owner on
+  details line (`web-tests/test_image_box_page.py`). Set by the owner on
   2026-11-24: an image the study's index holds (`req/shell/data/index`) shows the tags it carries there
   (`req/shell/data/tags`) in the Image box, as chips above its details; an image with none, or one the index does
   not hold, shows no such line (`web-tests/test_study_index_page.py`).
@@ -1208,6 +1218,18 @@ nobody has decided: what the page does there is not a requirement yet.
   is, so a step to the next area or book at much the same size moves the view without touching the zoom. It then
   glides the box's middle to the view's middle, as near as the image's edges let it. Test:
   `web-tests/test_image_point_page.py`.
+  </details>
+
+- `req/shell/image/idle` Before an image, the viewer offers nothing that needs one, and its middle carries a word for the project.
+  <details>
+
+  Set by the owner on 2026-11-27. From the page's first paint, before any study has arrived, until an image is open:
+  the toolbar's Ruler, Zoom in and Zoom out are greyed out, the Minimap button is not there
+  (`req/shell/image/minimap`), and a menu a study puts in the toolbar (Vascular's Show, NoR's) is greyed out whole,
+  its summary opening nothing, rather than opening on greyed-out items. The empty viewer's middle holds no
+  instruction and no word about Python: it holds one line asking a little shamelessly for support, a link to star
+  RaunTruth on GitHub or a nudge to tell others about it, one of a few, chosen afresh on each visit. Test:
+  `web-tests/test_idle_view_page.py`.
   </details>
 
 - `req/shell/image/keys` A study declares its keyboard shortcuts as data; the shell wires them and lists those that act now at the image's bottom left.
@@ -1267,7 +1289,7 @@ nobody has decided: what the page does there is not a requirement yet.
   Set by the owner on 2026-11-26: "we don't need it for general viewing. The image is small enough. It's certainly
   needed for the GT tagging of areas, but before analysis stage - drop the minimap." The minimap and its toolbar button
   show only while the user annotates in a study that hands the viewer the areas of its walk
-  (`req/shell/ground-truth/area-map`); there is none before Start, in plain viewing, while an Analysis File is shown read-only, in the
+  (`req/shell/ground-truth/area-map`), and are absent from the page's first paint, before any study has arrived (set by the owner on 2026-11-27); there is none before Start, in plain viewing, while an Analysis File is shown read-only, in the
   Image Viewer or in Study Setup's image dialog, however far the image is zoomed. Its title reads Areas, each area is a
   button on it, and a click or a drag on it no longer moves the view. Its collapse, its hide into the toolbar's button,
   its opacity and their keeping stay as below; what below says of when it shows, and of moving the view by it, is
@@ -1280,7 +1302,7 @@ nobody has decided: what the page does there is not a requirement yet.
   with the whole image in view there is nothing to navigate, and it would only cover the image's
   corner. A ^ at one end of its header collapses it to the
   header, and the same spot then shows v, which opens it again, so a second click undoes the first;
-  an X at the header's other end hides it. A Minimap button in the toolbar, beside the Grid, shows it
+  an X at the header's other end hides it. A Minimap button in the toolbar, beside the Ruler, shows it
   again or hides it, pressed while it shows; hiding it folds the minimap into that button, flying there
   along an arc, and showing it unfolds it back out of the button (set by the owner on 2026-10-31; no
   motion for a user who asks the system for reduced motion); hovering over the button opens a popup choosing how
@@ -1366,9 +1388,10 @@ nobody has decided: what the page does there is not a requirement yet.
 
   Set by the owner on 2026-11-07. At the toolbar's left the study chooses how what it extracted is drawn over the raw
   image (what to show, how wide, how faint); the left bar holds none of those. At its right, beside Zoom, are the
-  viewer's own tools (the ruler, the grid, the minimap, the 3D view's Look from). Set by the owner on 2026-11-10, a
-  study says, as data in its `study.json` (`view.hide`, naming `ruler` and `grid`), which of the viewer's tools it
-  does not show, and the shell reads it there: the Bookshelf Reader's photos have no scale, so it hides both. Test: `studies/vascular/tests/test_model_page.py`, `web-tests/test_viewer3d_page.py`,
+  viewer's own tools (the ruler, the minimap, the 3D view's Look from). Set by the owner on 2026-11-10, a
+  study says, as data in its `study.json` (`view.hide`, naming `ruler`), which of the viewer's tools it
+  does not show, and the shell reads it there: the Bookshelf Reader's photos have no scale, so it hides the ruler.
+  Set by the owner on 2026-11-27: the viewer has no grid; the ruler measures what a grid was for. Test: `studies/vascular/tests/test_model_page.py`, `web-tests/test_viewer3d_page.py`,
   `studies/shelves/tests/test_shelves_page.py`.
   </details>
 
@@ -1457,6 +1480,10 @@ nobody has decided: what the page does there is not a requirement yet.
 - `req/shell/load/from` Only the Image Viewer opens files from this computer; every study opens images from Google Drive.
   <details>
 
+  Set by the owner on 2026-11-27: the Image box's controls are the shell's, and take the form the study's `files.from`
+  gives them as soon as the page has read its study.json, never waiting for Google Drive to answer whether the visitor
+  may open the study (`web-tests/test_idle_view_page.py`).
+
   Set by the owner on 2026-11-04. A study's `files.from` lists where it opens images from, `local` (this
   computer) and `drive` (Google Drive), and every study lists at least one. The Image Viewer, which makes no
   ground truth, opens from both; NoR Finder and Vascular Measurements, whose images and ground truth live in
@@ -1490,7 +1517,8 @@ nobody has decided: what the page does there is not a requirement yet.
   ("6d"), months ("2mo") and years ("1y"); one opened before the page kept that time carries none. An image is one
   entry however often it is opened. Choosing one from Drive opens the copy kept on this device
   (`req/shell/drive/kept-images`), with no download, and downloads it again only when none is kept; offline, one
-  not kept is greyed and opens nothing. Choosing a file from this computer opens the file itself, as it is now,
+  not kept is greyed and opens nothing; online, one kept here carries the offline mark (`req/shell/offline/mark`).
+  Choosing a file from this computer opens the file itself, as it is now,
   after the browser asks the user to allow it to be read again: the page keeps the browser's reference to the
   file, never a copy (set by the owner on 2026-11-04); a file moved, deleted or refused says so and opens nothing.
   The browser keeps such a reference only where it lets a page choose files itself (Chrome and Edge); in any
@@ -1583,8 +1611,10 @@ nobody has decided: what the page does there is not a requirement yet.
   follows a study whose Python is all on this device and, for a study with a Google Drive folder of its own, at least
   one of its images too (set by the owner on 2026-11-07), in the header's switcher and its Storage
   section, and an image kept on this device, in the Google Drive dialog's rows; what is not available
-  offline carries nothing. The image selector's images carry none: with Auto-save on, they are all kept; offline,
-  one not kept is greyed (`req/shell/load/selector`). The owner set on
+  offline carries nothing. Set by the owner on 2026-11-27, in place of the image selector's images carrying none: the
+  selector's list is the user's on every device, so listing an image says nothing of this one, and an image from Drive
+  kept here carries the mark there too, between its place and its age; offline, one not kept is greyed
+  (`req/shell/load/selector`). The owner set on
   2026-11-04 that the mark states a state rather than prompting an action, so it is green, with no
   question-mark pointer; assistive tech is told what it means: the study runs, or the image opens, without the internet.
   The owner set on 2026-11-06 a tiny tooltip on it, "Available for offline", and that in a Drive row it sits before what
@@ -2299,17 +2329,6 @@ nobody has decided: what the page does there is not a requirement yet.
   `studies/vascular/tests/test_model_page.py`, `studies/shelves/tests`.
   </details>
 
-- `req/shell/tools/grid` A Grid button beside the Ruler draws a grid over the image, its colour and spacing the user's.
-  <details>
-
-  The button, a red 3×3 grid, draws the grid or takes it away. Clicking it, or hovering over it,
-  opens a popup choosing the grid's colour and the distance between its lines: in µm when the file
-  gives the pixel's size, the cells then square in µm whatever the pixel's width and height, and in
-  pixels when it does not. The colour and both distances, µm and pixels each its own, are kept as
-  the user's settings for the next visit, and Settings lists them, kept on this device only (`req/shell/account/settings`). The grid stays on from one
-  image to the next, and keeps its place through zoom. Test: `web-tests/test_grid_page.py`.
-  </details>
-
 - `req/shell/tools/ruler` A Ruler beside Zoom measures a distance on the image, in µm when the file gives a scale.
   <details>
 
@@ -2496,8 +2515,8 @@ nobody has decided: what the page does there is not a requirement yet.
   aside, as no folder is chosen. Its name, tags, description and Analysis Files show beside the grid, with Open image…. The image is read
   as before, its preview first, and by the code that reads it on the study's own page, so choosing asks the network for no more than it did.
   Open image… shows it in a dialog over the page, the page behind it held until the dialog shuts, as large as the window allows: the image's
-  name, the image drawn flat with what is already marked on it, a stack as its slices flattened whatever viewer the study names, the ruler,
-  grid, minimap and zoom, Load Original (the dialog's own button) while a preview shows, and Damaged areas and Area of interest with their Mark and Clear. It shows no
+  name, the image drawn flat with what is already marked on it, a stack as its slices flattened whatever viewer the study names, the ruler
+  and zoom, Load Original (the dialog's own button) while a preview shows, and Damaged areas and Area of interest with their Mark and Clear. It shows no
   left bar, no channel rows, no 3D view and none of the study's own tools. Close and Esc shut it, and choosing a folder shuts it too; Esc
   while an area is being lassoed gives up the lasso and leaves the dialog open. A notice raised while it is open shows over it. Test:
   `web-tests/test_setup_page.py` with `web-tests/setup_layout_driver.mjs`, `web-tests/test_data_mode_page.py`.

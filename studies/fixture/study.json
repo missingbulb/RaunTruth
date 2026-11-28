@@ -37,8 +37,7 @@
     "from": [
       "drive"
     ],
-    "accept": ".png",
-    "empty": "Load a greyscale PNG, then press Start."
+    "accept": ".png"
   },
   "channels": [
     {

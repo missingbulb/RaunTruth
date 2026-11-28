@@ -19,7 +19,7 @@
 // A listener a study adds outside its own panels takes shell.signal, which ends it when the study leaves.
 "use strict";
 import { drag, dragging } from "./drag.js";
-import { viewer as viewer2d, GRID, MINIMAP, closesOnLeave } from "./viewer2d.js";
+import { viewer as viewer2d, MINIMAP, closesOnLeave } from "./viewer2d.js";
 import { every, within, after } from "./pacing.js";
 import { work } from "./pending.js";
 import { viewer3d } from "./viewer3d.js";
@@ -881,7 +881,7 @@ const bytesOf = (k) => 2 * (k.length + (localStorage.getItem(k) || "").length); 
 // what each of the shell's own setting keys holds, in the user's words
 const OWN_SETTINGS = {
   [THEME]: "Theme", [BARS]: "Left bar width", [REMOTE_LINK]: `Last ${remote.label} link`, [REMOTE_LINKS]: `Last ${remote.label} link in each study`,
-  [THUMBS]: `Show thumbnails in the ${remote.short} dialog`, [AUTO_SAVE]: `Auto-save images from ${remote.label}`, [RECENT]: `Recent images from ${remote.label}`, [LOCAL_RECENT]: "Recent files from this computer", [LISTINGS]: `${remote.label} folders as last listed, for working offline`, [STUDY_INDEX]: "Each study's index of its images as last read, for working offline", [HOLDS]: `What each ${remote.short} image holds (2D or 3D)`, [THROTTLE]: `Wait after ${remote.short} downloads were throttled`, [TIPS]: "Tips you closed", [SEEN_VERSION]: "Version you saw last", [MEMORY_TIP]: "Low-memory popup turned off", [SIGNED_IN]: SIGNED_IN_LABEL, [GRID]: "Grid colour and spacing", [MINIMAP]: "Minimap: shown or not, and how see-through", [OUTBOX]: `Annotations waiting to be saved to ${remote.label}`, [GT_SAVED]: `The images you saved an annotation of in each study`, [MOTION]: "Animations turned off", [UNLOAD_PYTHON]: "Unload Python after each run", [RESOURCES]: "The status bar's disk, memory, network and CPU: auto-hiding or always open", [APP_ASKED]: "Asked for the site as an app", [WELCOME]: "Sign in or go on anonymously, as answered on opening the page", [ACTIONS]: "Your last actions here, for a problem report",
+  [THUMBS]: `Show thumbnails in the ${remote.short} dialog`, [AUTO_SAVE]: `Auto-save images from ${remote.label}`, [RECENT]: `Recent images from ${remote.label}`, [LOCAL_RECENT]: "Recent files from this computer", [LISTINGS]: `${remote.label} folders as last listed, for working offline`, [STUDY_INDEX]: "Each study's index of its images as last read, for working offline", [HOLDS]: `What each ${remote.short} image holds (2D or 3D)`, [THROTTLE]: `Wait after ${remote.short} downloads were throttled`, [TIPS]: "Tips you closed", [SEEN_VERSION]: "Version you saw last", [MEMORY_TIP]: "Low-memory popup turned off", [SIGNED_IN]: SIGNED_IN_LABEL, [MINIMAP]: "Minimap: shown or not, and how see-through", [OUTBOX]: `Annotations waiting to be saved to ${remote.label}`, [GT_SAVED]: `The images you saved an annotation of in each study`, [MOTION]: "Animations turned off", [UNLOAD_PYTHON]: "Unload Python after each run", [RESOURCES]: "The status bar's disk, memory, network and CPU: auto-hiding or always open", [APP_ASKED]: "Asked for the site as an app", [WELCOME]: "Sign in or go on anonymously, as answered on opening the page", [ACTIONS]: "Your last actions here, for a problem report",
 };
 // What the site keeps, by what it takes to work offline (req/shell/storage/manage): a section per study, then what they share; settings
 // apart, which Settings keeps (req/shell/account/settings), and with them what nobody names. An entry: {kind, name, what, size, del, held, ask}, del
@@ -1261,6 +1261,28 @@ function foldable() {
   });
   unfoldFirst();
 }
+// the empty view's word for the project, one of these chosen on each visit (req/shell/image/idle): text, and the words
+// of it that link to the project on GitHub
+const PLUGS = [
+  ["Did you Star this project on GitHub yet?", "Star this project on GitHub"],
+  ["Have you told your supervisor, colleagues, friends and, most importantly, family about RaunTruth?"],
+  ["RaunTruth is open source. Star it on GitHub so the next lab finds it too.", "Star it on GitHub"],
+  ["Found it useful? Tell the colleague at the next bench."],
+];
+{
+  const [text, linked] = PLUGS[Math.floor(Math.random() * PLUGS.length)], at = linked ? text.indexOf(linked) : -1, p = $("#plug");
+  if (at < 0) p.textContent = text;
+  else p.append(text.slice(0, at), Object.assign(document.createElement("a"), { href: `https://github.com/${REPO}`, target: "_blank", rel: "noopener", textContent: linked }), text.slice(at + linked.length));
+}
+// a menu a study puts in the toolbar is greyed out whole while no image is open (req/shell/image/idle)
+// and one a study moves out of it is its own again
+function toolbarMenus() {
+  for (const m of document.querySelectorAll("#view .toolbar details.menu, details.menu[aria-disabled]")) {
+    const off = !page.get("image") && !!m.closest("#view .toolbar");
+    m.inert = off; if (off) { m.setAttribute("aria-disabled", "true"); m.open = false; } else m.removeAttribute("aria-disabled");
+  }
+}
+page.watch("image", toolbarMenus);
 // the image back in view, from whichever of the study's views is on show
 function showImage() { study.showImage?.(); view.minimapView(); }
 
@@ -1556,6 +1578,8 @@ async function mountNow(id, read) {
   const r = read ?? await calls.during("site", "the study", () => fetch(base + "study.json"));
   if (!r.ok) throw new Error(`no study "${id}"`);
   manifest = await r.json();
+  // what the study's file sets in the shell's own controls, drawn before the store is asked anything (req/shell/load/from)
+  $("#file").accept = manifest.files.accept; placeLoad();
   const no = await refusal(manifest);
   if (no) {
     manifest = null;
@@ -1572,7 +1596,6 @@ async function mountNow(id, read) {
   $("#article-link").hidden = !manifest.article; if (manifest.article) $("#article-link").href = manifest.article; else $("#article-link").removeAttribute("href");
   log.add(`Opened the study “${manifest.title}”`);
   $("#favicon").href = manifest.icon ? base + manifest.icon : new URL("icon.svg", import.meta.url).href;
-  $("#file").accept = manifest.files.accept; $("#empty-text").textContent = manifest.files.empty; placeLoad();
   if (manifest.web.style) { css = document.createElement("link"); css.rel = "stylesheet"; css.href = base + manifest.web.style; document.head.append(css); }
   if (manifest.web.panels) {
     const panels = new DOMParser().parseFromString(await (await calls.during("site", "the study's panels", () => fetch(base + manifest.web.panels))).text(), "text/html");
@@ -1598,6 +1621,7 @@ async function mountNow(id, read) {
   if (manifest.groundTruth?.ring) $("#view").style.setProperty("--gt-ring", manifest.groundTruth.ring);
   const mod = await import(base + manifest.web.module);
   study = (await mod.mount(shell)) || {};
+  toolbarMenus();
   view.use(study);
   showStage();
   truth.draw();

@@ -2,7 +2,9 @@
 // a stack: its planes, sampled down, turned a little and drawn brightest-first along each line of sight.
 "use strict";
 
-// {W, H, bits, spp, little, offset, compression, um, images, channels, slices, frames, spacing} from the start of
+export const MICRONS = ["micron", "um", "µm"];
+
+// {W, H, bits, spp, little, offset, compression, um (in unit, ImageJ's), unit, images, channels, slices, frames, spacing} from the start of
 // a TIFF (an ArrayBuffer, the whole file or its first bytes); the ImageJ fields are null when it has no ImageJ
 // header; null when it is not a TIFF
 export function shape(buf) {
@@ -29,17 +31,24 @@ export function shape(buf) {
     }
   }
   const ij = typeof tags[270] === "string" && tags[270].startsWith("ImageJ=") ? tags[270] : "";
+  const unit = (ij.match(/^unit=(.*)$/m)?.[1] || "").trim().toLowerCase();
   const field = (k) => { const m = ij.match(new RegExp(`^${k}=([\\d.]+)$`, "m")); return m ? +m[1] : null; };
   return {
     W: tags[256], H: tags[257], bits: tags[258] || 1, spp: tags[277] || 1, little, offset: tags[273], compression: tags[259] || 1,
-    um: tags[282] ? 1 / tags[282] : null,
+    um: tags[282] ? 1 / tags[282] : null, unit,
     images: ij ? field("images") || 1 : null, channels: field("channels"), slices: field("slices"), frames: field("frames"), spacing: field("spacing"),
   };
 }
 
-// a JPEG data URL of the stack, at most SIDE pixels a side; null when its planes are not stored as ImageJ stores
+// a stack's depth in pixels of a picture `shrunk` times smaller than its slices: Z slices `spacing` µm apart over
+// pixels `um` µm wide, the slices as far apart as the pixels are wide while either is unknown
+export function depthOf(Z, spacing, um, shrunk = 1) {
+  return (Z * (spacing && um ? spacing / um : 1)) / shrunk;
+}
+
+// a JPEG data URL of the stack, at most SIDE pixels a side, `spacing` the slices' µm apart when the file does not say; null when its planes are not stored as ImageJ stores
 // them, uncompressed one after another
-export function stackPicture(buf, s, SIDE = 96) {
+export function stackPicture(buf, s, spacing = null, SIDE = 96) {
   const C = s.channels || 1, Z = s.slices || 1, by = s.bits / 8;
   if (Z < 2 || s.compression !== 1 || s.spp !== 1 || ![1, 2].includes(by) || !s.offset) return null;
   const plane = s.W * s.H * by;
@@ -56,9 +65,8 @@ export function stackPicture(buf, s, SIDE = 96) {
       if (q > out[k]) out[k] = q;
     }
   }
-  // depth in sampled pixels: the slice spacing over the pixel size when the file gives both, else one pixel a slice
-  const zs = s.spacing && s.um ? s.spacing / s.um : 1;
-  return drawVolume({ vol, Z, n, m, depth: (Z * zs) / step }, TURN, SIDE).toDataURL("image/jpeg", 0.85);
+  const z = s.spacing || (MICRONS.includes(s.unit) ? spacing : null);
+  return drawVolume({ vol, Z, n, m, depth: depthOf(Z, z, s.um, step) }, TURN, SIDE).toDataURL("image/jpeg", 0.85);
 }
 
 // the turn a still picture of a stack is drawn at, in radians about the vertical axis
@@ -66,11 +74,10 @@ export const TURN = (30 * Math.PI) / 180;
 
 // a canvas, at most SIDE pixels a side, of a volume: per channel, Z planes of n × m (vol[c], plane-major), its
 // depth in the planes' pixels, and optionally each channel's colour as [r, g, b] of 0 or 1. Turned by `turn` about the vertical axis and tilted a little, each channel drawn
-// brightest-first along each line of sight in its own colour, with the volume's edges faint. A thin volume is
-// drawn at least a quarter as deep as it is wide, so its depth still shows; the canvas is the same size at every
-// turn.
+// brightest-first along each line of sight in its own colour, with the volume's edges faint. Drawn as deep as it
+// is, every slice at its own depth; the canvas is the same size at every turn.
 export function drawVolume({ vol, Z, n, m, depth, colours }, turn, SIDE = 96) {
-  const C = vol.length, D = Math.max(2, Math.round(Math.max(depth, n / 4)));
+  const C = vol.length, D = Math.max(1, depth);
   const b = (20 * Math.PI) / 180, ca = Math.cos(turn), sa = Math.sin(turn), cb = Math.cos(b), sb = Math.sin(b);
   const at = (x, y, d) => { const x1 = x * ca + d * sa, z1 = -x * sa + d * ca; return [x1, y * cb - z1 * sb]; };
   // bounds that hold at every turn: the footprint's diagonal across, and the tilt's reach down
@@ -82,8 +89,8 @@ export function drawVolume({ vol, Z, n, m, depth, colours }, turn, SIDE = 96) {
     const src = vol[c], sorted = Float32Array.from(src).sort();
     const lo = sorted[Math.floor(0.5 * (sorted.length - 1))], hi = Math.max(lo + 1, sorted[Math.floor(0.998 * (sorted.length - 1))]);
     const flat = new Float32Array(OW * OH), col = COLOURS[c % COLOURS.length];
-    for (let d = 0; d < D; d++) {
-      const z = Math.min(Z - 1, Math.floor((d * Z) / D)), base = z * n * m;
+    for (let z = 0; z < Z; z++) {
+      const d = ((z + 0.5) * D) / Z, base = z * n * m;
       for (let y = 0; y < m; y++) for (let x = 0; x < n; x++) {
         const q = (src[base + y * n + x] - lo) / (hi - lo);
         if (q <= 0) continue;

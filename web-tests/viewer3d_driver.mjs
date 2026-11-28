@@ -12,7 +12,7 @@ import { EARLY } from "./early_messages.mjs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { ENGINE, SOFTWARE_3D } from "./engine.mjs";
-import { standInDrive, openFromDrive } from "./drive_open.mjs";
+import { openFromDrive } from "./drive_open.mjs";
 import { frames, viewDrawn } from "./page_frames.mjs";
 import { pw, launch, check } from "./harness.mjs";
 import { world } from "./world.mjs";
@@ -47,10 +47,11 @@ const { origin, server } = await serveSite({
 });
 
 const browser = await launch(pw), w = world(browser, origin);
+// the deploy with a Google key, the page offering no sign-in
+w.site.withoutGoogleClient();
 // the drawn stack's levels shown as drawn, so a check can name the colour a voxel gives
 w.studies.edit("vascular", (m) => ({ ...m, view: { ...m.view, stretch: false } }));
 const device = w.device().with(SOFTWARE_3D);
-await standInDrive(await device.context());
 let page;
 
 // the 3D view's picture as it is now: mean red, green and blue (0-255), and how many pixels are lit
@@ -97,7 +98,7 @@ try {
     check(tools.title === "Reset view to top" && tools.label === "Reset view to top" && tools.icon && !tools.text && !tools.menu && tools.beside && !(await page.$("#v3-stage #v3-tools")),
       `beside Zoom one icon button, its tooltip Reset view to top, and no menu of views: ${JSON.stringify(tools)}`);
     check(!tools.gone.length, `the toolbar has no Render, Colour by depth or Slices tool: ${tools.gone}`);
-    check(tools.zoom && await page.isVisible("#ruler-btn") && await page.isHidden("#grid-btn"), "Zoom and the Ruler stay in 3D, the other 2D tools step aside");
+    check(tools.zoom && await page.isVisible("#ruler-btn") && await page.isHidden("#minimap-btn"), "Zoom and the Ruler stay in 3D, the other 2D tools step aside");
     const z0 = await page.textContent("#zoom-label");
     await page.click("#zoom-in");
     await picture();
@@ -190,6 +191,12 @@ try {
     // no row under it; ticked, its colour picker is a palette picker, and two channels by depth take two palettes. The
     // study ticks CD31's from the start.
     if (await page.evaluate(() => $("#image-box").classList.contains("folded"))) { await page.click("#image-box"); await page.waitForFunction(() => !$("#image-box").classList.contains("folded")); }
+    // the spacing's field fills its box, its text centred in it with nothing cut, its arrows legible
+    const spin = await page.evaluate(() => {
+      const box = $(".v3-spin").getBoundingClientRect(), f = $("#v3-zs").getBoundingClientRect(), up = getComputedStyle($("#v3-zs-up"));
+      return { box: box.height, field: f.height, off: Math.abs((f.top + f.bottom) / 2 - (box.top + box.bottom) / 2), arrow: parseFloat(up.fontSize) };
+    });
+    check(spin.field <= spin.box && spin.off <= 1 && spin.arrow >= 10, `the spacing's text sits in the middle of its box, uncut, beside legible arrows: ${JSON.stringify(spin)}`);
     const depthRows = () => page.evaluate(() => [...document.querySelectorAll("#channels > .channel:not(.v3-slices)")].map((r) => {
       const tick = r.querySelector(".v3-tick"), pal = r.querySelector(".v3-palette");
       return { name: r.querySelector("label").textContent, tick: tick ? tick.checked : null, under: !!r.nextElementSibling?.matches(".v3-depth-row"),
@@ -372,7 +379,6 @@ try {
     const get = HTMLCanvasElement.prototype.getContext;
     HTMLCanvasElement.prototype.getContext = function (kind, ...rest) { return kind === "webgl2" ? null : get.call(this, kind, ...rest); };
   });
-  await standInDrive(noGl);
   noGl.on("weberror", (e) => check(false, "page error, no WebGL2: " + e.error().message));
   const p2 = await bare.opens("vascular");
   await openFromDrive(p2, STACK);

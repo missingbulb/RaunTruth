@@ -55,12 +55,23 @@ out.folder = { named: tf.folderOf({ extractions: "EXTRACTIONS01", curated: "OLD"
   const d = memoryDrive(), sub = d.add({ parent: "EXT", name: tf.subfolderName(IMG.name, IMG.sha256), folder: true });
   d.add({ parent: sub.id, name: await tf.personFile("new@x.org"), body: "{}" });
   d.add({ parent: sub.id, name: tf.runFile("find_nodes", "0.11121.154+ab12"), body: "{}" });
-  d.add({ parent: sub.id, name: "gt_old@x.org.json", body: "{}" });
   d.add({ parent: sub.id, name: "notes.txt", body: "not an extraction" });
   d.add({ parent: sub.id, name: "x_nested.json", folder: true });
   const listed = await tf.files(d.reader, "EXT", IMG);
   out.listing = { names: listed.map((f) => f.name), run: listed.find((f) => f.run)?.run, by: listed.find((f) => f.by)?.by,
     other: await tf.files(d.reader, "EXT", { name: "other.tif", sha256: "f".repeat(64) }) };
+}
+
+// a file of the name before x_, gt_<email>.json, read as that person's; passed over once they also have an x_ file
+{
+  const d = memoryDrive(), sub = d.add({ parent: "EXT", name: tf.subfolderName(IMG.name, IMG.sha256), folder: true });
+  d.add({ parent: sub.id, name: "gt_Old@X.org.json", body: "{}" });
+  const alone = await tf.files(d.reader, "EXT", IMG), own = await tf.own(d.reader, "EXT", IMG, "old@x.org");
+  d.add({ parent: sub.id, name: await tf.personFile("old@x.org"), body: "{}" });
+  const both = await tf.files(d.reader, "EXT", IMG), ownBoth = await tf.own(d.reader, "EXT", IMG, "old@x.org");
+  out.older = { alone: alone.map((f) => [f.name, f.by]), own: own?.name ?? null, key: await tf.personKey("old@x.org"),
+    both: both.map((f) => f.name), ownBoth: ownBoth?.name ?? null, sub: sub.id,
+    inSub: (await tf.filesIn(d.reader, sub.id)).map((f) => f.name) };
 }
 
 // the person's own file, found from the two listings alone: the extractions folder, then the image's subfolder; nothing read

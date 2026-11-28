@@ -21,7 +21,7 @@ export async function personKey(email) {
 // a person's file in the image's subfolder, and a batch run's: the algorithm's key and the version that ran it
 export const personFile = async (email) => `x_${await personKey(email)}.json`;
 export const runFile = (algorithm, version) => `run_${algorithm}__${version}.json`;
-const PERSON = /^x_([0-9a-f]{16})\.json$/, RUN = /^run_(.+?)__(.+)\.json$/;
+const PERSON = /^x_([0-9a-f]{16})\.json$/, RUN = /^run_(.+?)__(.+)\.json$/, OLDER = /^gt_(.+@.+)\.json$/;
 
 // the folder the study's extractions are in, from its root's study file (study_root.js read), null while it has none
 export const folderOf = (settings) => settings?.extractions || null;
@@ -31,28 +31,34 @@ async function subfolder(reader, folder, image) {
   return (await reader.all(folder)).find((f) => f.folder && f.name === name) || null;
 }
 // an extraction file as the listing gives it, {id, name, modified, by, run}: by the person's key (personKey), or null for a batch run's;
-// run {algorithm, version} for a batch run's, else null. A file that is neither is passed over.
-const entry = (f) => {
-  const p = PERSON.exec(f.name), r = RUN.exec(f.name);
-  if (f.folder || !(p || r)) return null;
-  return { id: f.id, name: f.name, modified: f.modified, by: p ? p[1] : null, run: p ? null : { algorithm: r[1], version: r[2] } };
+// run {algorithm, version} for a batch run's, else null. A file that is neither is passed over. A file of the name before x_,
+// gt_<email>.json, is the person's whose email it holds, passed over where they also have an x_ file (req/shell/extractions/list).
+const entry = async (f) => {
+  const p = PERSON.exec(f.name), r = RUN.exec(f.name), o = OLDER.exec(f.name);
+  if (f.folder || !(p || r || o)) return null;
+  const by = p ? p[1] : o ? await personKey(o[1]) : null;
+  return { id: f.id, name: f.name, modified: f.modified, by, run: r ? { algorithm: r[1], version: r[2] } : null, older: !!o };
+};
+const entries = async (listed) => {
+  const all = (await Promise.all(listed.map(entry))).filter(Boolean), current = new Set(all.filter((f) => f.by && !f.older).map((f) => f.by));
+  return all.filter((f) => !(f.older && current.has(f.by))).map(({ older: _, ...f }) => f);
 };
 
 // [{id, name, modified, by, run}] the image's extractions in folder, from two listings and no file read
 export async function files(reader, folder, image) {
   const sub = await subfolder(reader, folder, image);
-  return sub ? (await reader.all(sub.id)).map(entry).filter(Boolean) : [];
+  return sub ? entries(await reader.all(sub.id)) : [];
 }
 
 // the id of the image's subfolder of folder, null where it has none: one request, where reader.folderNamed(folder, name) asks for it by name
 export const subfolderId = (reader, folder, image) => reader.folderNamed(folder, subfolderName(image.name, image.sha256));
 // the extractions in a subfolder already found, as files() gives them: its one listing
-export const filesIn = async (reader, sub) => (await reader.all(sub)).map(entry).filter(Boolean);
+export const filesIn = async (reader, sub) => entries(await reader.all(sub));
 
 // the person's own extraction of the image, as files() lists it, or null
 export async function own(reader, folder, image, email) {
-  const mine = await personFile(email);
-  return (await files(reader, folder, image)).find((f) => f.name === mine) || null;
+  const key = await personKey(email);
+  return (await files(reader, folder, image)).find((f) => f.by === key) || null;
 }
 
 // An image's extractions as the list shows them, [{id, modified, label, group, marks}], mine first, then the marked

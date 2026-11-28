@@ -3,6 +3,7 @@
 // their colours; a stack a mini-volume, one 8-bit page per slice and channel. Pages are deflate-compressed with
 // the horizontal predictor, the index the first page's description.
 "use strict";
+import { MICRONS } from "./stack.js";
 
 // the largest side of a flat image's page, of a stack's, and a stack's most slices
 export const FLAT = 256, VOL = 96, SLICES = 24;
@@ -60,8 +61,14 @@ function colours(src) {
   return Array.from({ length: src.C }, (_, c) => cols[c % cols.length]);
 }
 
+// a TIFF's pixel width in µm, null when its ImageJ header does not give it in µm
+function micronsWide(src) {
+  const ij = src.ij || {};
+  return MICRONS.includes(String(ij.unit || "").toLowerCase()) && src.xres && src.xres[0] ? src.xres[1] / src.xres[0] : null;
+}
+
 // {meta, pages: [{W, H, spp, data}]} of one image, src as readTiff (or fromPlanes) gives it
-export async function makePreview(src, spacing = null) {
+export async function makePreview(src) {
   const { W, H, C, Z } = src, cols = colours(src);
   const plane = async (c, z) => numbers(await src.plane(c, z, 0), src.bps, src.sampleFormat);
   if (Z === 1) {
@@ -93,8 +100,9 @@ export async function makePreview(src, spacing = null) {
     return stretch(all);
   });
   for (let g = 0; g < n; g++) for (let c = 0; c < C; c++) pages.push({ W: w, H: h, spp: 1, data: stretched[c].subarray(g * w * h, (g + 1) * w * h) });
-  const meta = { kind: "stack", channels: C, slices: Z, colours: cols, volume: [n, C, h, w] };
-  if (spacing) meta.spacing = spacing;
+  // the source's pixel width in µm (null when the file does not say) and its width in pixels, for the preview's depth
+  const meta = { kind: "stack", channels: C, slices: Z, colours: cols, volume: [n, C, h, w], width: W, um: micronsWide(src) };
+  if (src.ij?.spacing) meta.spacing = +src.ij.spacing;
   return { meta, pages };
 }
 
