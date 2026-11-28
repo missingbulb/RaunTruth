@@ -762,6 +762,11 @@ nobody has decided: what the page does there is not a requirement yet.
   next Save writes the user's own extraction with `base`, the id of the file it was edited from, leaving that file
   unchanged. Tests: `web-tests/test_annotate_mode_page.py`, `web-tests/test_extractions_page.py`,
   `web-tests/test_truth_folders.py`.
+
+  Set by the owner on 2026-11-28, after a tagger's three Analysis Files, saved before 2026-11-23 as `gt_<email>.json`,
+  listed as none. A file of that older name is read as that person's, the key of its email as for `x_<key>.json`, labelled
+  the same and never by the email; where the person also has an `x_` file the older one is passed over, so a save after it
+  lists one file, not two. Saving still writes the `x_` file only. Test: `web-tests/test_truth_folders.py`.
   </details>
 
 - `req/shell/extractions/marks-shown` Load study images shows, per image, whether your extraction is saved, GT or official, and whether another's was marked.
