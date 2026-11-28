@@ -10,8 +10,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 from scipy import ndimage as ndi
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..', 'algorithm'))
-import vascular  # noqa: E402
+ALGORITHM = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..', 'algorithm')
 
 # the crop around a junction, µm each way from it; the card's picture, screen px
 J_HALF_UM, CARD_PX = 22.0, 320
@@ -157,6 +156,9 @@ def main():
     ap.add_argument('stack'); ap.add_argument('model'); ap.add_argument('out')
     ap.add_argument('--junctions', type=int, default=20); ap.add_argument('--vessels', type=int, default=30); ap.add_argument('--seed', type=int, default=1)
     a = ap.parse_args()
+    # the study's own reader, for the stack's CD31 channel and its µm per pixel
+    sys.path.insert(0, ALGORITHM)
+    import vascular
     im = vascular.read(a.stack); vol = im['cd31'].astype(np.float32); um = im['um']
     model = json.load(open(a.model)); rng = np.random.default_rng(a.seed)
     flat = vol.max(0); lohi = tuple(np.percentile(flat, [1, 99.7]))
