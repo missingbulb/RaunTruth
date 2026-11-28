@@ -1,0 +1,188 @@
+<title>Vessel Card Trial</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* layout: one card at a time in a centred column, the evidence above, the keys under it, a thin run bar on top */
+:root {
+  --bg: #f3f4f2; --panel: #ffffff; --fg: #1d2421; --dim: #5d6863; --line: #d4dad6;
+  --accent: #1f8a5b; --mark: #3ddc84; --warn: #b45309; --well: #0b0d0c;
+  --body: "Inter", system-ui, sans-serif; --head: "Space Grotesk", "Inter", system-ui, sans-serif; --mono: "JetBrains Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #111513; --panel: #191e1b; --fg: #e4ebe7; --dim: #93a09a; --line: #2c3430; --accent: #3ddc84; --warn: #f0a24a; color-scheme: dark } }
+:root[data-theme="dark"] { --bg: #111513; --panel: #191e1b; --fg: #e4ebe7; --dim: #93a09a; --line: #2c3430; --accent: #3ddc84; --warn: #f0a24a; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font: 15px/1.45 var(--body); padding-block: 20px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
+main { max-width: 760px; margin: 0 auto; display: grid; gap: 14px }
+h1 { font: 600 26px/1.2 var(--head); margin: 0; text-wrap: balance }
+h2 { font: 600 18px/1.3 var(--head); margin: 0 }
+p { margin: 0; max-width: 65ch }
+.dim { color: var(--dim) }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 12px; min-width: 0 }
+.run { display: flex; gap: 12px; align-items: center; font: 13px var(--mono); color: var(--dim) }
+.run .track { flex: 1; height: 6px; background: var(--line); border-radius: 3px; overflow: hidden }
+.run .fill { height: 100%; background: var(--accent); width: 0 }
+.pics { display: flex; gap: 12px; flex-wrap: wrap }
+.pics figure { margin: 0; display: grid; gap: 4px; flex: 1 1 300px; min-width: 0 }
+.pics img, .well { width: 100%; max-width: 100%; border-radius: 6px; background: var(--well); display: block; image-rendering: auto }
+figcaption { font-size: 12px; color: var(--dim) }
+.facts { font: 13px/1.5 var(--mono); font-variant-numeric: tabular-nums }
+.facts b { color: var(--warn) }
+.keys { display: flex; gap: 8px; flex-wrap: wrap }
+.keys button { flex: 1 1 120px; padding: 10px 8px; font: 500 14px var(--body); border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--fg); cursor: pointer }
+.keys button:hover { border-color: var(--accent) }
+.keys button:focus-visible, .primary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+kbd { font: 12px var(--mono); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; margin-left: 6px; color: var(--dim) }
+.small { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--dim) }
+.primary { padding: 12px 18px; font: 600 15px var(--body); border: 0; border-radius: 8px; background: var(--accent); color: #fff; cursor: pointer; justify-self: start }
+table { border-collapse: collapse; font: 13px var(--mono); font-variant-numeric: tabular-nums }
+td, th { padding: 4px 12px 4px 0; text-align: left; border-bottom: 1px solid var(--line) }
+.tablewrap { overflow-x: auto }
+svg text { fill: var(--dim); font: 11px var(--mono) }
+textarea { width: 100%; min-height: 120px; font: 12px var(--mono); background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 6px }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@600&family=JetBrains+Mono&display=swap">
+
+<main id="app">
+  <div class="panel"><h1>Vessel Card Trial</h1><p class="dim">Loading the cards…</p></div>
+</main>
+
+<script>
+(() => {
+const app = document.getElementById('app');
+const el = (tag, props = {}, ...kids) => { const e = Object.assign(document.createElement(tag), props); e.append(...kids.filter((k) => k != null)); return e; };
+const key = (k) => el('kbd', { textContent: k });
+let cards = [], meta = {}, i = 0, answers = [], shownAt = 0, firstKey = null, adjust = 0, held = { depth: false, bare: false }, runId = null, db = null, finished = false, started = false;
+const STEP = 0.25;
+
+async function store() {
+  if (!db || !runId) return;
+  try { await db.doc('runs/' + runId).set({ stack: meta.stack, algorithm: meta.algorithm, started: answers[0]?.at ?? null, finished, answers }); }
+  catch (e) { console.warn('could not save the run', e); }
+}
+
+function header() {
+  const done = answers.filter((a) => a.answer !== 'back').length;
+  return el('div', { className: 'run' }, el('span', { textContent: `${Math.min(i + 1, cards.length)} / ${cards.length}` }),
+    el('div', { className: 'track' }, el('div', { className: 'fill', style: `width:${100 * i / cards.length}%` })),
+    el('span', { textContent: cards[i]?.kind === 'width' ? 'widths' : 'junctions' }));
+}
+
+function intro() {
+  const nj = cards.filter((c) => c.kind === 'junction').length, nw = cards.length - nj;
+  app.replaceChildren(el('div', { className: 'panel' },
+    el('h1', { textContent: 'Vessel Card Trial' }),
+    el('p', { textContent: `${nj} junctions, then ${nw} vessel widths, cut from ${meta.stack}. Each card is timed from the moment it shows to your key. Answer as you would while tagging for real; there is no right speed.` }),
+    el('h2', { textContent: 'Junctions' }),
+    el('p', {}, 'The flattened stack around the junction, each arm\'s depth written where it leaves the picture. Hold ', key('E'), ' to colour it by depth, ', key('H'), ' to hide the drawn arms. Answer ', key('D'), ' branch, ', key('C'), ' crossing, ', key('X'), ' a wrong link, ', key('Q'), ' can\'t tell.'),
+    el('h2', { textContent: 'Widths' }),
+    el('p', {}, 'The vessel straightened from the slices at its depth, its brightness across it, and the vessel in its surroundings. The dashed edges sit where the curve crosses half its height. ', key('D'), ' agrees with the width shown, ', key('A'), ' and ', key('S'), ' make it 0.25 µm narrower or wider (then ', key('D'), '), ', key('X'), ' not a vessel, ', key('Q'), ' can\'t tell.'),
+    el('p', { className: 'dim' }, key('Space'), ' skips a card, ', key('Shift'), '+', key('Space'), ' goes back one. Your answers are saved as you go.'),
+    el('button', { className: 'primary', id: 'start', textContent: 'Start', onclick: () => { started = true; show(); } })));
+}
+
+function profileSvg(c) {
+  const W = 640, H = 200, o = c.offsets_um, p = c.profile, lo = Math.min(...p), hi = Math.max(...p);
+  const x = (u) => 40 + (u - o[0]) / (o[o.length - 1] - o[0]) * (W - 60), y = (v) => H - 30 - (v - lo) / (hi - lo || 1) * (H - 50);
+  const ns = 'http://www.w3.org/2000/svg', s = document.createElementNS(ns, 'svg');
+  s.setAttribute('viewBox', `0 0 ${W} ${H}`); s.setAttribute('class', 'well'); s.setAttribute('role', 'img'); s.setAttribute('aria-label', 'Brightness across the vessel');
+  const add = (tag, at) => { const e = document.createElementNS(ns, tag); for (const k in at) e.setAttribute(k, at[k]); s.append(e); return e; };
+  for (let u = Math.ceil(o[0]); u <= o[o.length - 1]; u++) { add('line', { x1: x(u), x2: x(u), y1: H - 30, y2: H - 24, stroke: '#7a857f' }); const t = add('text', { x: x(u) - 4, y: H - 10 }); t.textContent = u; }
+  const tu = add('text', { x: W - 24, y: H - 10 }); tu.textContent = 'µm';
+  add('line', { x1: 40, x2: W - 20, y1: y(c.half), y2: y(c.half), stroke: '#7a857f', 'stroke-dasharray': '2 4' });
+  const lab = add('text', { x: 44, y: y(c.half) - 6 }); lab.textContent = 'half height';
+  add('polyline', { points: p.map((v, k) => `${x(o[k])},${y(v)}`).join(' '), fill: 'none', stroke: '#e8ece9', 'stroke-width': 2 });
+  const mid = (c.edges_um[0] + c.edges_um[1]) / 2, w = c.measured_um + adjust;
+  for (const e of [mid - w / 2, mid + w / 2]) add('line', { x1: x(e), x2: x(e), y1: 10, y2: H - 30, stroke: '#3ddc84', 'stroke-width': 2, 'stroke-dasharray': '6 5' });
+  return s;
+}
+
+// a card entered: its clock and its adjustment start afresh; render() redraws it as it stands
+function show() {
+  if (i >= cards.length) return end();
+  shownAt = performance.now(); firstKey = null; adjust = 0;
+  render();
+}
+function render() {
+  const c = cards[i];
+  let body;
+  if (c.kind === 'junction') {
+    const pic = el('img', { src: held.depth ? c.depth : held.bare ? c.bare : c.grey, alt: 'The junction, flattened through every slice', id: 'pic' });
+    body = [
+      el('div', { className: 'pics' }, el('figure', {}, pic, el('figcaption', { textContent: 'Each label: that arm\'s depth over its first 8 µm. Hold E for colour by depth, H to hide the arms.' }))),
+      el('div', { className: 'facts', textContent: `${c.arms} arms${c.merged ? ' · two junctions close together, asked as one' : ''}` }),
+      el('div', { className: 'keys' },
+        el('button', { onclick: () => answer('branch') }, 'Branch', key('D')), el('button', { onclick: () => answer('crossing') }, 'Crossing', key('C')),
+        el('button', { onclick: () => answer('cut') }, 'Wrong link', key('X')), el('button', { onclick: () => answer('unclear') }, 'Can\'t tell', key('Q')))];
+  } else {
+    const w = c.measured_um + adjust, off = Math.abs(c.estimate_um - c.measured_um) / c.measured_um > 0.15;
+    body = [
+      el('div', { className: 'pics' },
+        el('figure', { style: 'flex-basis:100%' }, el('img', { src: c.strip, alt: 'The vessel straightened' }), el('figcaption', { textContent: `Straightened from the slices at its depth (${c.depth_um} µm), ${c.length_um} µm long, ends at left and right` })),
+        el('figure', {}, profileSvg(c), el('figcaption', { textContent: 'Brightness across the vessel, over its middle 60%' })),
+        el('figure', { style: 'flex:0 1 220px' }, el('img', { src: c.context, alt: 'The vessel in its surroundings' }), el('figcaption', { textContent: 'The vessel, in green' }))),
+      el('div', { className: 'facts' }, `Width at half height `, el('b', { textContent: `${w.toFixed(2)} µm`, style: off ? '' : 'color:inherit' }), ` · the algorithm said ${c.estimate_um.toFixed(2)} µm${off ? ' (more than 15% apart)' : ''}${w < 2 ? ' · at the resolution limit' : ''}`),
+      el('div', { className: 'keys' },
+        el('button', { onclick: () => answer(adjust ? 'set' : 'agree') }, adjust ? 'Use this width' : 'Agree', key('D')),
+        el('button', { onclick: () => nudge(-1) }, 'Narrower', key('A')), el('button', { onclick: () => nudge(1) }, 'Wider', key('S')),
+        el('button', { onclick: () => answer('not-vessel') }, 'Not a vessel', key('X')), el('button', { onclick: () => answer('unclear') }, 'Can\'t tell', key('Q')))];
+  }
+  app.replaceChildren(header(), el('div', { className: 'panel' }, ...body,
+    el('div', { className: 'small' }, el('span', {}, 'Skip', key('Space')), el('span', {}, 'Back', key('Shift'), '+', key('Space')))));
+}
+
+function nudge(d) {
+  if (firstKey == null) firstKey = performance.now() - shownAt;
+  adjust = Math.max(-cards[i].measured_um + STEP, adjust + d * STEP);
+  render();
+}
+
+function answer(a) {
+  const c = cards[i], now = performance.now();
+  answers.push({ card: i, kind: c.kind, answer: a, width_um: c.kind === 'width' && a === 'set' ? +(c.measured_um + adjust).toFixed(2) : null,
+    measured_um: c.measured_um ?? null, estimate_um: c.estimate_um ?? null, spread_um: c.spread_um ?? null, merged: c.merged ?? null,
+    first_key_ms: Math.round(firstKey ?? now - shownAt), total_ms: Math.round(now - shownAt), held_depth: !!c._heldDepth, at: new Date().toISOString() });
+  i++; store(); show();
+}
+
+function end() {
+  finished = true; store();
+  const by = (k) => answers.filter((a) => a.kind === k && a.answer !== 'skip' && a.answer !== 'back');
+  const med = (xs) => { if (!xs.length) return null; const s = [...xs].sort((a, b) => a - b); return s[s.length >> 1]; };
+  const row = (label, xs) => el('tr', {}, el('td', { textContent: label }), el('td', { textContent: xs.length }), el('td', { textContent: med(xs.map((a) => a.total_ms)) != null ? (med(xs.map((a) => a.total_ms)) / 1000).toFixed(1) + ' s' : '–' }));
+  const count = (k, a) => by(k).filter((x) => x.answer === a).length;
+  const ta = el('textarea', { id: 'result', readOnly: true, value: JSON.stringify({ stack: meta.stack, answers }) });
+  app.replaceChildren(el('div', { className: 'panel' },
+    el('h1', { textContent: 'Thank you' }),
+    el('p', { textContent: db ? 'Your answers are saved with this page, where Claude reads them.' : 'Saving is not available in this view: copy the answers below and paste them to Claude.' }),
+    el('div', { className: 'tablewrap' }, el('table', {}, el('tr', {}, el('th', { textContent: 'cards' }), el('th', { textContent: 'answered' }), el('th', { textContent: 'median time' })),
+      row('junctions', by('junction')), row('widths', by('width')))),
+    el('p', { className: 'dim', textContent: `Junctions: ${count('junction', 'branch')} branch, ${count('junction', 'crossing')} crossing, ${count('junction', 'cut')} wrong link, ${count('junction', 'unclear')} can't tell. Widths: ${count('width', 'agree')} agreed, ${count('width', 'set')} set, ${count('width', 'not-vessel')} not a vessel, ${count('width', 'unclear')} can't tell.` }),
+    ta, el('button', { className: 'primary', textContent: 'Copy the answers', onclick: async () => { try { await navigator.clipboard.writeText(ta.value); } catch { ta.select(); } } })));
+}
+
+document.addEventListener('keydown', (e) => {
+  if (!started || i >= cards.length || e.ctrlKey || e.metaKey || e.altKey) return;
+  const c = cards[i], k = e.key.toLowerCase();
+  if (k === ' ') { e.preventDefault(); if (e.shiftKey) { if (i > 0) { answers.push({ card: i, kind: c.kind, answer: 'back', at: new Date().toISOString() }); i--; show(); } } else answer('skip'); return; }
+  if (c.kind === 'junction') {
+    if (k === 'e' || k === 'h') { if (e.repeat) return; if (firstKey == null) firstKey = performance.now() - shownAt; if (k === 'e') { held.depth = true; c._heldDepth = true; } else held.bare = true;
+      const p = document.getElementById('pic'); if (p) p.src = held.depth ? c.depth : held.bare ? c.bare : c.grey; return; }
+    const a = { d: 'branch', c: 'crossing', x: 'cut', q: 'unclear' }[k]; if (a && !e.repeat) answer(a);
+  } else {
+    if (k === 'a' || k === 's') { e.preventDefault(); nudge(k === 'a' ? -1 : 1); return; }
+    const a = { d: adjust ? 'set' : 'agree', x: 'not-vessel', q: 'unclear' }[k]; if (a && !e.repeat) answer(a);
+  }
+});
+document.addEventListener('keyup', (e) => {
+  const k = e.key.toLowerCase(); if (k !== 'e' && k !== 'h') return; held[k === 'e' ? 'depth' : 'bare'] = false;
+  const c = cards[i], p = document.getElementById('pic'); if (c && p) p.src = held.depth ? c.depth : held.bare ? c.bare : c.grey;
+});
+
+(async () => {
+  try { const r = await fetch('cards.json'); const d = await r.json(); cards = d.cards; meta = d; }
+  catch (e) { app.replaceChildren(el('div', { className: 'panel' }, el('h1', { textContent: 'Vessel Card Trial' }), el('p', { textContent: 'The cards did not load. Reload the page; if it stays like this, tell Claude.' }))); return; }
+  runId = 'run-' + Date.now().toString(36);
+  intro();
+  try { db = await window.claude?.use?.('db'); } catch { db = null; }
+})();
+})();
+</script>

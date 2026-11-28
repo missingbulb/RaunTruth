@@ -22,7 +22,7 @@ owner's decisions on the stacks and the vessel model, are
   <details>
 
   A card for each junction (three or more live branches) and each vessel (junction or tip to the
-  next): the stack around it flattened over the slices shown, the rest of the model thin in magenta
+  next): the stack around it flattened over the slices shown, the rest of the model thin in green
   and the item in white, with its numbers (a vessel's length along its curve, its width and depth
   span; a junction's depth, width and how many junctions lie within 20 µm). Filters show the ones
   worth a look and the declined vessels; sorting brings the shortest, widest, most branched or most
@@ -38,7 +38,8 @@ owner's decisions on the stacks and the vessel model, are
   Moved from the 3D MicroViewer (`studies/vascular/docs/3D-STACKS.md`, the owner's decisions of
   2026-10-03 to 10-29). The model Execute draws (`req/vascular/model/run`), or any `vessel-model/2`
   file loaded, shows as the toolbar says (`req/vascular/model/view`): white tubes in a view of its
-  own that turns with the stack's, or magenta over the stack. On the model: drag a point to move it, its handle shown
+  own that turns with the stack's, or green over the stack (owner, 2026-11-28, in place of magenta, which the
+  red end of the depth palettes swallowed: green is the hue furthest from all four palettes). On the model: drag a point to move it, its handle shown
   only while ground truth is tagged, never on the main view out of tagging (owner, 2026-11-08),
   right-click a segment or a point to delete it (one menu on every vessel, the same options in one order, what does not
   apply to what was clicked greyed with why, never hidden; owner, 2026-11-15), add or remove a bend (a point on any vessel, low-confidence ones
@@ -56,8 +57,9 @@ owner's decisions on the stacks and the vessel model, are
   browser under the study's own key are offered once as a draft (`req/shell/ground-truth/legacy`). A tip dropped where
   it cannot attach, on its own vessel's next point, has only moved, and its action says so. The ring Edit History draws
   round an action's item is green (`groundTruth.ring`), not the shell's yellow: the depth palettes pass through yellow
-  and the model's knots and set widths are amber, and green is the colour furthest from every palette and every colour
-  the model is drawn in. A run after stored ground truth (`req/shell/ground-truth/history-carry`) carries it onto the new
+  and the model's knots and set widths are amber, and green is the colour furthest from every palette and every mark
+  the model draws. Its lines are green too since 2026-11-28, the one hue the palettes leave free; the ring, a circle
+  shown while an action is pointed at, is told from them by its shape. A run after stored ground truth (`req/shell/ground-truth/history-carry`) carries it onto the new
   model: a verdict or a width goes to the segment between the same two points (points matched by place, then, for a point the
   tagger moved, within 3 µm), a moved point stays where it was put, the points and vessels the tagger drew or split stand
   as they were (replacing the run's vessel between the same two points), and so do the areas and junctions checked. A
@@ -105,10 +107,10 @@ owner's decisions on the stacks and the vessel model, are
   labelled `vascular-ground-truth`; it is off until the model carries a
   correction, and its checklist says what of each task is still open. Each verdict is in the file:
   a vessel's `state` (`accepted` or `rejected`) beside `proposed`, the state the extractor gave it;
-  a junction found right in `checked_junctions`; each area done in `reviewed_regions`, the area's box
-  with its `step`, `area`. Nothing in the tasks sets or confirms a width, so the widths stay the algorithm's
-  estimates, kept but named in the file's `unchecked` list (`r`, `r_a`, `r_b`, `taper_known`), never claimed
-  as corrected. The file keeps every point's and segment's id (a curve point's `id`, an edge's `segment_ids`), so an action
+  a junction found right in `checked_junctions`, one nobody could tell in `unclear_junctions`; each area done in
+  `reviewed_regions`, the area's box with its `step`, `area`, and its Missed step's box. A vessel's width the person
+  said is its `width` (`req/vascular/truth/widths`); the algorithm's estimates are kept beside it but named in the file's
+  `unchecked` list (`r`, `r_a`, `r_b`, `taper_known`), never claimed as corrected. The file keeps every point's and segment's id (a curve point's `id`, an edge's `segment_ids`), so an action
   names the same item after saving and loading; a point a person adds takes its id from 1,000,000 up and a segment from
   `u1`, apart from the algorithm's, so a run again never gives them to something else. The file has no clock and no
   count of corrections (`corrected_at` and `corrections` are no longer written): the day an area or a width was said
@@ -162,9 +164,9 @@ owner's decisions on the stacks and the vessel model, are
   <details>
 
   Set by the owner on 2026-11-04. The toolbar chooses what the main view shows: Image (the stack
-  alone), Model (the model alone), Overlay (the model over the stack, in magenta) and Side by side
+  alone), Model (the model alone), Overlay (the model over the stack, in green) and Side by side
   (the stack and the model each in a half, turning together). While CD31 is coloured by depth
-  (`req/shell/viewer-3d`) the model is painted by depth in CD31's palette, as the stack is; over the stack the model stays magenta,
+  (`req/shell/viewer-3d`) the model is painted by depth in CD31's palette, as the stack is; over the stack the model stays green,
   a colour the depth scale never gives, so it never vanishes into the signal it marks. Vessel widths draws each
   vessel as wide as the model says. Changed by the owner on 2026-11-07, everything that sets how the model shows
   is at the toolbar's left (`req/shell/image/toolbar`): Vessel widths and Everything, Detected and Missed, with the reach
@@ -276,23 +278,22 @@ owner's decisions on the stacks and the vessel model, are
   `studies/vascular/tests/test_vessel_summary.mjs`, `studies/vascular/tests/test_model_page.py`.
   </details>
 
-- `req/vascular/truth/keys` While an area is tagged, keys give the verdicts: F and J judge the junction, Space does the area, S skips it.
+- `req/vascular/truth/keys` While an area is tagged, F and J give the box's two verdicts, Q says can't tell, Space does the step, S skips, B goes back.
   <details>
 
   Set by the owner on 2026-11-15, one scheme for every study's ground-truth tasks, the keys read by their place on the
-  keyboard so they work in any layout. F gives the verdict the box offers first, J the other: for the junction pictured,
-  F is Junction and J is They cross. Space is Area is right, only while it is on, unless a button has the focus, which
-  Space presses as anywhere; S is Skip. The tasks ask about no line
-  (a faint one is kept by clicking it, `req/vascular/truth/tasks`), so F and J judge only junctions; the A and D keys over
-  a faint line keep or decline it, as before (`req/vascular/model/correct`). There is no Back in these tasks, so
-  Backspace does nothing here. A key acts only while GT tagging is on and an area is open, never while typing in a field
-  or with a menu or dialog open, never when its button is hidden or off, and once per press, however long it is held; it
-  does what its button does, and only a key that acted is kept from the page. None of them is a key the stack's view or
-  the model already uses. Changed by the owner on 2026-11-16, they are the study's declared actions
-  (`req/shell/image/keys`), each button showing its key and the image's keys legend listing each while it acts, its
-  button shown and on, filled blue while the key is held. In an area's widths step Space is These widths look right, − and +
-  make the selected vessel narrower or wider and ⌫ is Reset (`req/vascular/truth/widths`); the number keys show the
-  views there as anywhere (`req/vascular/model/view`). Test:
+  keyboard so they work in any layout: F gives the verdict the box offers first, J the other. In the four steps of
+  `req/vascular/truth/tasks` (owner, 2026-11-28): F is Keep, Junction or Agree, and J is Reject, They cross or Not a
+  vessel; Q is Can't tell, on a junction or a width; − and + make the vessel's width 0.25 µm narrower or wider and ⌫
+  puts the algorithm's back; `,` and `.` step the slices in the Missed step; Space is the step's own button, Nothing
+  else missing or Area done, only while it is on, unless a button has the focus, which Space presses as anywhere; S is
+  Skip; B is Back. The A and D keys over a faint line keep or decline it, as before (`req/vascular/model/correct`). A key
+  acts only while GT tagging is on and an area is open, never while typing in a field or with a menu or dialog open,
+  never when its button is hidden or off, and once per press, however long it is held; it does what its button does,
+  and only a key that acted is kept from the page. None of them is a key the stack's view or the model already uses.
+  Changed by the owner on 2026-11-16, they are the study's declared actions (`req/shell/image/keys`), each button
+  showing its key and the image's keys legend listing each while it acts, its button shown and on, filled blue while
+  the key is held; the number keys show the views as anywhere (`req/vascular/model/view`). Test:
   `studies/vascular/tests/test_vessel_keys_page.py`.
   </details>
 
@@ -325,7 +326,7 @@ owner's decisions on the stacks and the vessel model, are
 
   Set by the owner on 2026-11-07, replacing the three steps per area (Lines, Missed vessels, Junctions) set earlier
   that day, which replaced the vessel-by-vessel tasks of 2026-11-04. The tasks are the stack's areas
-  (`req/vascular/truth/order`). Once a model is open the box's first row chooses how many areas, then come a bar split into a part per area, as wide as the area has junctions and filled as far as they are judged,
+  (`req/vascular/truth/order`). Once a model is open the box's first row chooses how many areas, then come a bar split into a part per area, as wide as the area has items to answer in its four steps and filled as far as they are answered,
   a row per area in the walk's order, "Area 1" to "Area 16", a check once it is done, and Save last.
   Execute, while the user annotates (`req/shell/annotate/choice`), opens the walk on its first area not done
   (`req/shell/ground-truth/tagging`); the whole stack, as the Show menu sets it, is what the page shows outside annotation mode.
@@ -336,58 +337,64 @@ owner's decisions on the stacks and the vessel model, are
   every slice flattened, each pixel its brightest, in the colours the image box paints it, so the person sees where to
   go next; an area's mark is a tint the stack shows through (owner, 2026-11-10).
 
-  The open area's row holds its cogwheel and Skip, and under it the area's work, all in one pass: the main view shows
-  the area alone, opening from straight above, the model's lines over the stack with a handle on every point and a
-  glyph on every junction, turning and panning in 3D as anywhere. Dragging a handle from straight above moves its point
+  The open area's row holds its cogwheel, Back and Skip, and under it the area's work in four steps, one item at a time,
+  each answer moving on to the next by itself (owner, 2026-11-28, replacing the one pass of 2026-11-07; the brief, the
+  design, the review and the trial behind it are in `studies/vascular/docs/gt-redesign/`). The step's name and how far
+  it has come head the box: **Doubts**, then **Junctions**, then **Missed**, then **Vessels**, and an area is done once
+  all four are.
+  1. **Doubts**: each low-confidence vessel whose middle lies in the area, pictured in the box: Keep or Reject.
+  2. **Junctions**: each junction in the area, ringed on the view and pictured in the box twice, grey and coloured by
+     the slice each pixel is brightest in, each arm's depth in µm written where it leaves the picture: a real
+     Junction, vessels that only cross at different depths (They cross, split then, its button neutral since a crossing
+     is a finding, not a rejection; owner, 2026-11-28), or Can't tell, kept in the
+     model's `unclear_junctions` and left out of the score. Clicking a junction on the view makes it the current one.
+  3. **Missed**: a look over the area for what the algorithm missed. The model's lines are dimmed and drawn through every
+     depth, and the slices are stepped one at a time with `,` and `.`, each stretched to its own low and high (owner,
+     2026-11-28), the box saying how many of the stack's slices have been seen. "Nothing
+     else missing" turns on once every slice has been seen, and records the area's `missed` box with the slices seen
+     and the seconds spent (owner, 2026-11-28, replacing "no button saying no vessel was missed" of 2026-11-07).
+  4. **Vessels**: each vessel whose middle lies in the area, its width asked (`req/vascular/truth/widths`). Once every
+     vessel there has an answer, "Area done" does the area.
+
+  Throughout, the main view shows the area alone, opening from straight above, the model's lines over the stack with
+  a handle on every point and a glyph on every junction, turning and panning in 3D as anywhere, and the item asked
+  about drawn whole. Dragging a handle from straight above moves its point
   across the picture, never in depth; turned, across the screen at its depth; a tip dropped on another vessel attaches
   there, a junction made. The right-click menu deletes, adds a bend, connects or splits a junction into vessels that
   cross, as anywhere (`req/vascular/model/correct`); right-clicked on the image where no line is, it offers Draw a
   missed vessel, its first point there; while it is drawn, the line's end snaps onto the point or vessel under the
   pointer, lit as a dragged tip's target is, never onto the vessel being drawn, and the click joins it there (owner,
-  2026-11-08). A low-confidence line, faint, is kept by clicking it. Each junction in the
-  area in turn, ringed on the view and pictured in the box, is a real junction or vessels that only cross at
-  different depths (split then); clicking a junction on the view makes it the current one. "Area is right", on once
-  every junction there has a verdict, moves the area on to its widths step (`req/vascular/truth/widths`, owner,
-  2026-11-16), and "These widths look right" there does the area: every confident vessel whose middle lies in it is
-  accepted, every low-confidence one not kept is declined, and the walk moves to the next area not done. There is no button to
-  draw a missed vessel, none saying no vessel was missed, and none ending the junctions apart (owner, 2026-11-07).
+  2026-11-08). A vessel drawn in an area joins its Vessels step. Back returns to the item answered before, whose
+  answer a new one replaces; Skip leaves the area for the next one not done. An area done accepts every confident
+  vessel whose middle lies in it and declines every low-confidence one not kept.
 
   Holding 1 shows the model alone, and letting it go the lines over the stack again; Ctrl does not (owner, 2026-11-16,
   in place of Ctrl, set on 2026-11-07). Its Model row in the image's keys legend is filled blue while the model shows
   alone, a faded grey "1" beside it; clicking it keeps the model alone on or off, as Panning's click does (owner,
   2026-11-08), and 2 hides the lines over the stack (`req/vascular/model/view`). At the toolbar's left, in the Show menu's place, a big Back to image button leaves the area
   for the whole stack, where the Show menu is again; in the same place, Back to task returns to the area. Each area
-  done is kept in the model's `reviewed_regions` as the area's box, with its `step`, `area`; in a file from the three
-  steps, an area counts done where its `lines`, `missed` and `junctions` boxes all cover it. Test:
+  done is kept in the model's `reviewed_regions` as the area's box, with its `step`, `area`; its Missed step as a box with
+  the step `missed`, its `slices_seen` and `seconds`. In a file from the three steps, an area counts done where its
+  `lines`, `missed` and `junctions` boxes all cover it. Test:
   `studies/vascular/tests/test_vessel_tasks_page.py`.
   </details>
 
-- `req/vascular/truth/widths` Each area ends with its widths: a vessel clicked is selected, and − and + set its width in µm.
+- `req/vascular/truth/widths` The Vessels step asks every vessel's width, one card each, measured from the stack at half height.
   <details>
 
-  Set by the owner on 2026-11-16, replacing the W widths look of 2026-11-15 and its drag from wall to wall. Each
-  area's widths are its last step, after its junctions (`req/vascular/truth/tasks`): Area is right opens it, and These
-  widths look right, in Area is right's place, ends the area, which is then done and cut out. An area with no vessel
-  has no widths step. The step opens on the area in the stack's own pixels (never the 3D view's binned voxels), every
-  slice flattened, grey, from straight above, never turning. Each vessel, junction or tip to the next, has one width,
-  never a taper: two lines at that width either side of it, stopping short of its ends, and the width in µm beside its
-  middle. Magenta is the algorithm's estimate, nobody has checked; amber one the person set; a vessel the person drew
-  shows a "?" until it has a width. This is the step's own view (`req/vascular/model/view`): holding a number shows
-  another view of the area, 1 the model alone from straight above, 2 the grey picture alone, 3 the grey picture beside the model, 4 the model's lines over the
-  stack in colour in 3D, turning as anywhere, with the selected vessel marked, and letting go gives it back, the
-  selection kept. Resting the pointer on a vessel opens a lens beside it: the stack's own pixels there, the mean of
-  about three slices at the vessel's depth, a line across the vessel and the brightness along that line, half its
-  height dashed.
-
-  Clicking a vessel selects it, and does nothing else: no drag measures on the image, and nothing is set there. The
-  box shows the selected vessel's width under the step's row, with − and + making it 0.25 µm narrower or wider and
-  Reset putting back the algorithm's estimate, each button carrying its key; with nothing selected it asks for a
-  click on a vessel. A vessel the person drew, with no estimate, starts from the median width of the area's other
-  vessels. These widths look right waits until every vessel the person drew in the area has a width, its line in the
-  box saying how many are left; it then marks every other vessel's width there that the person did not set as looked
-  at, never as measured. There is no "cannot be told". Widths are values in µm, never classes. Each vessel's `width`
-  in the file is `{um, how, on}`: `how` is `nudge` (stepped from the estimate) or `looked`, `um` only where the person
-  set it; a vessel nobody said anything of has none. A file from before keeps its `walls` and `cannot` widths as they
-  are. The algorithm's `r`, `r_a`, `r_b` and `taper_known` stay as it wrote them and are still named in `unchecked`.
-  Test: `studies/vascular/tests/test_vessel_widths_page.py`, `studies/vascular/tests/test_vessel_model_edits.mjs`.
+  Set by the owner on 2026-11-28: every vessel gets a card (`req/vascular/truth/tasks`), replacing the area's widths
+  step of 2026-11-16, whose "These widths look right" recorded every width nobody touched as looked at. The card shows
+  the vessel straightened, from the slices at its depth read between slices, true to scale; the brightness across it,
+  averaged over its middle 60%, with µm ticks and a line at half its height; and the two edges where the curve crosses
+  that line, the **half-height width**, written beside the algorithm's, which is drawn too, dotted in another colour; the width the
+  buttons record is named with where it starts and how far it was stepped. Where the two differ by more than 15% it says
+  so; where the profile has a second peak inside its window it says that, draws no edges, and the width starts from
+  the algorithm's. The main view draws the vessel whole. Agree (F) records the half-height width; − and + step it
+  0.25 µm narrower or wider and Agree then records that; Not a vessel (J) declines it, or deletes one the person
+  drew; Can't tell (Q) records that; ⌫ puts back the algorithm's width. Widths are values in µm, never classes. Each
+  vessel's `width` in the file is `{um, how, on}`: `how` is `measured` (Agree on the half-height width), `nudge` (stepped
+  from it) or `unclear`, `um` on the first two; a vessel nobody said anything of has none, which never reads as
+  agreement. A file from before keeps its `walls`, `cannot` and `looked` widths as they are. The algorithm's `r`, `r_a`,
+  `r_b` and `taper_known` stay as it wrote them and are still named in `unchecked`. **Tentative**: the edge convention,
+  half height; the ground-truth files made so far hold no corrected width, so it changes none (owner, 2026-11-28). Test: `studies/vascular/tests/test_vessel_steps_page.py`, `studies/vascular/tests/test_gt_actions.mjs`.
   </details>

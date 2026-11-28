@@ -13,8 +13,8 @@ let V = null;
 const $ = (id) => document.getElementById(id);
 const CARD_PX = 168;           // a card's picture, CSS pixels square
 const MIN_HALF_UM = 12;        // the least the picture shows around its item, each way
-// the model in magenta and the item in white: neither is a colour the depth scale gives the stack
-const MODEL = 'rgba(255,79,216,.75)', ITEM = '#fff';
+// the model in green and the item in white, as the overlay draws them
+const MODEL = 'rgba(0,255,0,.75)', ITEM = '#fff';
 // how much a low-confidence vessel is faded against a confident one
 const FADED = .4;
 const STATE_TEXT = { vessel: 'Vessel', candidate: 'Low confidence', accepted: 'Approved', rejected: 'Declined' };
@@ -49,7 +49,8 @@ function visible() {
 function scale(m) { const [, Y, X] = V.meta.shape; return [X / (m.size_px[0] * m.um_per_px), Y / (m.size_px[1] * m.um_per_px)]; }
 
 // the stack around box (µm) drawn on canvas cv, px CSS pixels square, the model over it, then mark(c, at, k, dpr)
-function picture(cv, m, box, mark, px = CARD_PX) {
+// byDepth: each pixel coloured by the slice it is brightest in, as bright as it is there, whatever the image box paints
+function picture(cv, m, box, mark, px = CARD_PX, byDepth = false) {
   // a picture asked for in a frame that comes after the study, or its stack, has gone
   if (!V?.meta) return;
   const [, Y, X] = V.meta.shape, [sx, sy] = scale(m), vol = V.volume(), n = X * Y;
@@ -64,7 +65,7 @@ function picture(cv, m, box, mark, px = CARD_PX) {
     if (X0 < 0 || Y0 < 0 || X0 >= X || Y0 >= Y) continue;
     let mv = -1, mz = 0;
     for (let z = z0; z <= z1; z++) { const v = vol[z * n + Y0 * X + X0]; if (v > mv) { mv = v; mz = z; } }
-    const [r, g, b] = V.lut2d(mv, (mz - z0) / Math.max(z1 - z0, 1));
+    const [r, g, b] = byDepth ? depthColour(V.lut2d(mv, 0), (mz - z0) / Math.max(z1 - z0, 1)) : V.lut2d(mv, (mz - z0) / Math.max(z1 - z0, 1));
     d[o] = r; d[o + 1] = g; d[o + 2] = b;
   }
   c0.putImageData(img, 0, 0);
@@ -116,8 +117,34 @@ export function vesselPicture(cv, m, v, px) {
   }, px);
 }
 
-export function junctionPicture(cv, m, j, px) {
-  const r = Math.max(MIN_HALF_UM, 3 * (j.r || 0));
+// a pixel's brightness, [r, g, b] as the image box paints it, coloured by depth: hue from red at the first slice shown
+// through green to blue at the last
+function depthColour(rgb, depth) {
+  const v = Math.max(...rgb) / 255, h = depth * 240 / 60, x = 1 - Math.abs((h % 2) - 1);
+  const [r, g, b] = h < 1 ? [1, x, 0] : h < 2 ? [x, 1, 0] : h < 3 ? [0, 1, x] : [0, x, 1];
+  return [r, g, b].map((c) => Math.round(c * v * 255));
+}
+// a junction's half extent in its picture, µm
+const junctionHalf = (j) => Math.max(MIN_HALF_UM, 3 * (j.r || 0)) * 1.15;
+// each branch of junction j: its depth in µm over its first stretch away from j, and where it leaves the picture as a
+// share of the picture's side from its top left, [0..1, 0..1]
+export function junctionArms(m, j) {
+  const half = junctionHalf(j), out = [];
+  m.segments.forEach((s, i) => {
+    if (!Mo.live(s) || (s.a !== j.id && s.b !== j.id)) return;
+    let pts = Mo.sampleSegment(m, i, SAMPLES);
+    if (s.a !== j.id) pts = [...pts].reverse();
+    const near = pts.slice(1, Math.max(2, pts.length >> 1));
+    const z = near.reduce((t, p) => t + p.z, 0) / near.length;
+    const far = pts.find((p) => Math.max(Math.abs(p.x - j.x), Math.abs(p.y - j.y)) > half * .8) ?? pts.at(-1);
+    const d = Math.hypot(far.x - j.x, far.y - j.y) || 1, reach = half * .78;
+    out.push({ z_um: z * (m.z_step_um || 1), at: [.5 + (far.x - j.x) / d * reach / (2 * half), .5 + (far.y - j.y) / d * reach / (2 * half)] });
+  });
+  return out;
+}
+
+export function junctionPicture(cv, m, j, px, byDepth = false) {
+  const r = junctionHalf(j) / 1.15;
   picture(cv, m, [j.x - r, j.y - r, j.x + r, j.y + r], (c, at, k, dpr) => {
     // its branches as far as their next point, in white
     c.strokeStyle = ITEM; c.lineWidth = 1.5 * dpr;
@@ -130,7 +157,7 @@ export function junctionPicture(cv, m, j, px) {
     c.globalAlpha = 1;
     const [x, y] = at(j);
     c.beginPath(); c.arc(x, y, Math.max((j.r || 0) * k, 5 * dpr), 0, 2 * Math.PI); c.lineWidth = 1.5 * dpr; c.stroke();
-  }, px);
+  }, px, byDepth);
 }
 
 // ---------- the cards ----------

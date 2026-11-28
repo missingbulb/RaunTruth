@@ -16,7 +16,7 @@ export function mount(shell) {
   shell.signal.addEventListener("abort", () => MV.leave());
   shell.views.on((v) => { items.visibleNow(v === "items"); if (v === "image") V.redraw(); });
   items.init(V, () => shell.views.show("image"), shell.views.count);
-  if (truth) tasks.init(V, shell.tasks, steps, submit, shell.actions);
+  if (truth) tasks.init(V, shell.tasks, steps, submit, shell.actions, () => shell.viewer.levels());
   // the summary and its mask show only while the study does not make ground truth
   else summary.init(V, shell, MV.current);
 

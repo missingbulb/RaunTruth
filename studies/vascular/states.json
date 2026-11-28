@@ -18,23 +18,37 @@
               {"is": "hidden", "approval": "tentative"}
             ]
           },
+          {"name": "Back", "select": "#task-back", "control": true, "req": "req/vascular/truth/tasks",
+            "rule": [
+              {"is": "disabled", "approval": "tentative"}
+            ]
+          },
           {"name": "Skip", "select": "#task-skip", "control": true, "req": "req/vascular/truth/order"}
         ]
       },
       {"name": "The area now", "select": "#task-now", "req": "req/vascular/truth/tasks",
         "children": [
-          {"name": "Junctions' note", "select": "#junctions-note", "req": "req/vascular/truth/tasks"},
-          {"name": "Widths' note", "select": "#widths-note", "req": "req/vascular/truth/widths", "steady": "says something only in the widths step, which no path reaches",
+          {"name": "The step's head", "select": "#step-head", "req": "req/vascular/truth/tasks"},
+          {"name": "Junctions' note", "select": "#junctions-note", "req": "req/vascular/truth/tasks", "steady": "says nothing since each step heads the box itself",
             "rule": [
               {"is": "hidden", "approval": "tentative"}
             ]
           },
-          {"name": "The junction's stage", "select": "#task-stage", "req": "req/vascular/truth/tasks",
-            "children": [
-              {"name": "The junction's card", "select": "#task-card", "req": "req/vascular/truth/tasks"}
+          {"name": "Widths' note", "select": "#widths-note", "req": "req/vascular/truth/widths", "steady": "says nothing since the widths became the Vessels step's cards",
+            "rule": [
+              {"is": "hidden", "approval": "tentative"}
             ]
           },
-          {"name": "Area is right", "select": "#area-ok", "control": true, "req": "req/vascular/truth/tasks"},
+          {"name": "The item's stage", "select": "#task-stage", "req": "req/vascular/truth/tasks",
+            "children": [
+              {"name": "The item's card", "select": "#task-card", "req": "req/vascular/truth/tasks"}
+            ]
+          },
+          {"name": "The step's button", "select": "#area-ok", "control": true, "req": "req/vascular/truth/tasks",
+            "rule": [
+              {"is": "disabled", "approval": "tentative"}
+            ]
+          },
           {"name": "Drawing's note", "select": "#draw-note", "req": "req/vascular/model/correct", "steady": "says something only while a vessel is being drawn, which no path does",
             "rule": [
               {"is": "hidden", "approval": "tentative"}

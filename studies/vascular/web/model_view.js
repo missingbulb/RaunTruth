@@ -19,9 +19,9 @@ let V = null;
 // the shell's GT actions (shell.gt): act(action), count(), on(fn)
 let gt = null;
 const PICK_POINT_PX = 9, PICK_SEGMENT_PX = 6, DRAG_PX = 5;
-// The overlay draws the model in magenta: neither the depth colours nor the hot scale of the stack
-// carry it, so a line never vanishes into the signal it is laid over.
-const OVERLAY = '#ff4fd8';
+// The overlay draws the model in green: of every hue, the one furthest from all the depth palettes, so a line never
+// vanishes into the signal it is laid over.
+const OVERLAY = '#00ff00';
 // knots of junctions the extractor marked as probably traced wrong, in amber: none of the other colours
 const DENSE = '#ffb020';
 // areas left out of the analysis are hatched in grey: damage has no colour of its own to compete with
@@ -110,7 +110,10 @@ function samples(i) {
   if (!c) sampled.set(model, (c = []));
   return (c[i] ??= Mo.sampleSegment(model, i, SAMPLES));
 }
-const inSlab = (n) => n.z >= V.S.z0 - .5 && n.z <= V.S.z1 + .5 && V.inClip(toWorld(n));
+// allDepths: the model drawn through every slice while the stack shows fewer, as the look for what was missed asks
+let allDepths = false;
+const inSlab = (n) => (allDepths || (n.z >= V.S.z0 - .5 && n.z <= V.S.z1 + .5)) && V.inClip(toWorld(n));
+export function everyDepth(on) { if (allDepths !== !!on) { allDepths = !!on; V?.redraw(); } }
 // declined candidates are never drawn; the rest are, unless the owner has hidden the low-confidence ones
 const visible = (s) => Mo.live(s);
 const shown = (s) => visible(s) && (inSlab(model.nodes.get(s.a)) || inSlab(model.nodes.get(s.b)));
