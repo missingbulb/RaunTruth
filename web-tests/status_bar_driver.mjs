@@ -418,7 +418,8 @@ const count = async (page) => { await fromScratch(page, "#fx-count"); await page
   await mustHold(/max-width|width|all/.test(look.property) && look.ms >= 150, "folding and unfolding is animated", look);
   await page.hover("#sb-res-icon");
   await isOpen(true, "hovering the icon unfolds the four as they look always open");
-  await mustHold((await block()).icon > 10 && await page.evaluate(() => document.querySelector("#sb-res-items").getBoundingClientRect().right <= document.querySelector("#sb-res-icon").getBoundingClientRect().left),
+  // a hundredth of a pixel apart is touching: Firefox lays out in sixtieths of a pixel, and adds them up in floats
+  await mustHold((await block()).icon > 10 && await page.evaluate(() => document.querySelector("#sb-res-items").getBoundingClientRect().right <= document.querySelector("#sb-res-icon").getBoundingClientRect().left + 0.01),
     "the icon staying, the four opening beside it", await block());
   await shot(page, "9-resources-unfolded");
   const unfolded = await bars(page);
@@ -451,6 +452,7 @@ const count = async (page) => { await fromScratch(page, "#fx-count"); await page
   await mustHold((await block()).icon > 10, "the icon coming back");
   await page.click("#sb-res-icon");
   await page.waitForFunction(() => document.querySelector("#usage-dlg").open);
+  await atRest(page, "#usage-dlg");
   if (shots) await page.screenshot({ path: path.join(shots, "12-resources-setting.png") });
   const mode = await page.evaluate(() => { const b = document.querySelector("#res-mode"); return { type: b?.type, checked: b?.checked, label: b?.closest("label")?.textContent.trim(), row: !!b?.closest(".dlg-row.end"),
     left: b && b.closest("label").getBoundingClientRect().left - b.closest(".dlg-row").getBoundingClientRect().left, level: b && Math.abs(b.closest("label").getBoundingClientRect().bottom - [...b.closest(".dlg-row").querySelectorAll("button")].at(-1).getBoundingClientRect().bottom), selects: document.querySelectorAll("#usage-dlg .res-mode select").length }; });

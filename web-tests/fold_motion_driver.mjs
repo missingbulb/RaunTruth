@@ -103,13 +103,23 @@ for (const [how, opts] of [["animations on", {}], ["animations off", { motion: f
   const opening = await page.evaluate((n) => window.scriptMotions.slice(n).filter((m) => m.target.matches("#file-box")).length, n);
   n = await scripted(page);
   await page.focus("#unload");
+  // whether the part is still on show in the first frame after it is hidden, as its motion begins
+  await page.evaluate(() => {
+    const seen = new MutationObserver(() => {
+      if (!$("#file-box").hidden) return;
+      seen.disconnect();
+      requestAnimationFrame(() => { window.foldGoing = $("#file-box").checkVisibility({ opacityProperty: true }); });
+    });
+    seen.observe(document.body, { subtree: true, attributeFilter: ["hidden"] });
+  });
   await page.keyboard.press("Enter");
   await page.waitForFunction(() => $("#file-box").hidden);
   await mustHold(await page.evaluate(() => $("#file-box").hidden), "a part closed is hidden at once to the page");
   if (moves) {
     const closed = await animated(page, n, "#file-box", "height");
     await page.waitForFunction(() => !$("#file-box").checkVisibility());
-    await mustHold(!closed.missing, "and it closes with a height motion, hidden at its end", closed);
+    const going = await page.evaluate(() => window.foldGoing);
+    await mustHold(!closed.missing && going, "and it closes with a height motion, on show as it goes and hidden at its end", { closed, going });
   } else {
     await page.waitForFunction(() => !$("#file-box").checkVisibility());
     const closing = await page.evaluate((n) => window.scriptMotions.slice(n).filter((m) => m.target.matches("#file-box")).length, n);

@@ -509,7 +509,9 @@ nobody has decided: what the page does there is not a requirement yet.
   through one fold the page's parts share (a part marked `data-fold`): the opened image's details, the line under the
   choice of an analysis, the bar of a selection's actions and a run's results, the list of images newer than their
   ground truth; and a finished task draws in to its ticked line. Not folded yet, and still a cut: a details under its
-  heading (Show how, an explanation), an inline confirmation, and a correction leaving the sharing list. The line
+  heading (Show how, an explanation), an inline confirmation, a correction leaving the sharing list, and, in Firefox and
+  Safari, the dimmed backdrop behind a closing dialog, which those browsers draw only while the dialog is open (left so
+  by the owner on 2026-11-28). The line
   saying the study's stage keeps its place from the start, so nothing below it is pushed.
   Edit History draws in toward its toolbar button as it hides. Grid and List change by one fading into the other. The
   button of the step to do
