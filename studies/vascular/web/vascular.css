@@ -63,7 +63,8 @@
 .task-card .pics { display: flex; gap: 6px; }
 .task-card .pic { position: relative; }
 .task-card .arm-z { position: absolute; transform: translate(-50%, -50%); font: 11px/1.3 "IBM Plex Mono", monospace; color: #fff; background: rgba(0, 0, 0, .7); padding: 0 3px; border-radius: 3px; pointer-events: none; white-space: nowrap; }
-.task-card .facts { margin: 0; font: 12px/1.4 "IBM Plex Mono", monospace; }
+.task-card .facts { margin: 0; font-size: 12px; line-height: 1.4; }
+.task-card .facts span { white-space: nowrap; }
 .task-card .facts strong { color: var(--warn); font-weight: 600; }
 .task-card .w-now { margin: 0; font-weight: 600; }
 .task-card canvas.strip { image-rendering: auto; }
@@ -72,6 +73,7 @@
 .task-card svg.profile .half { stroke: #8a9099; stroke-dasharray: 2 3; }
 .task-card svg.profile .edge { stroke: #3ddc84; stroke-width: 2; stroke-dasharray: 5 4; }
 .task-card svg.profile .tick { stroke: #8a9099; }
+.task-card svg.profile .estimate { stroke: #b48cff; stroke-width: 1.5; stroke-dasharray: 1 3; }
 .task-card svg.profile text { fill: #9aa0a8; font: 10px "IBM Plex Mono", monospace; }
 #mcv.dim { opacity: .4; }
 

@@ -201,7 +201,9 @@ function junctionCard(m, j) {
     wrap.append(cv);
     if (byDepth) for (const a of arms) {
       const t = el('span', 'arm-z', `${a.z_um.toFixed(0)} µm`);
-      t.style.left = `${(a.at[0] * 100).toFixed(1)}%`; t.style.top = `${(a.at[1] * 100).toFixed(1)}%`;
+      // kept inside the picture, so no label is cut at its edge
+      const clamp = (f) => Math.min(Math.max(f, .14), .86);
+      t.style.left = `${(clamp(a.at[0]) * 100).toFixed(1)}%`; t.style.top = `${(clamp(a.at[1]) * 100).toFixed(1)}%`;
       wrap.append(t);
     }
     pics.append(wrap);
@@ -211,7 +213,7 @@ function junctionCard(m, j) {
   const unclear = button("Can't tell", () => answered({ type: 'unclear-junction', node: j.id, on: true }), 'unclear');
   yes.title = 'Three or more vessels really meet here'; no.title = 'The vessels only pass each other at different depths: split them';
   unclear.title = 'Neither can be told: kept apart and left out of the score';
-  card.append(pics, el('p', 'note', 'Grey, and coloured by depth: red the first slice, blue the last. Each arm\'s depth where it leaves.'), verdicts(yes, no, unclear));
+  card.append(pics, el('p', 'note', 'As the image shows it, and coloured by depth: red the first slice, blue the last. Each arm\'s depth where it leaves.'), verdicts(yes, no, unclear));
   return card;
 }
 
@@ -220,7 +222,7 @@ function missedCard() {
   card.dataset.key = 'missed';
   const prev = button('‹ Slice', () => showSlice(st.slice - 1)), next = button('Slice ›', () => showSlice(st.slice + 1));
   prev.id = 'slice-prev'; next.id = 'slice-next'; prev.disabled = st.slice <= 0; next.disabled = st.slice >= Z - 1;
-  const seen = el('p', 'note', `Slice ${st.slice + 1} of ${Z} · ${st.seen.size} of ${Z} seen`); seen.id = 'slices-seen';
+  const seen = el('p', 'note', `Slice ${st.slice + 1} of ${Z} shown`); seen.id = 'slices-seen';
   card.append(el('p', null, 'Look over the area for vessels the algorithm missed, one slice at a time. Right-click the image where one runs to draw it.'),
     seen, verdicts(prev, next));
   return card;
@@ -243,7 +245,7 @@ function widthCard(m, v) {
   c.putImageData(img, 0, 0);
   strip.style.width = px + 'px'; strip.style.height = Math.max(36, Math.min(140, Math.round(px * w.strip.h / w.strip.w))) + 'px';
   const base = w.measured ?? v.width ?? null, now = base != null ? Math.max(STEP_UM, base + st.adjust) : null;
-  card.append(strip, profile(w, now, px));
+  card.append(strip, profile(w, now, px, v.width));
   const facts = el('p', 'facts');
   const said = v.said && v.said.um ? ` · said ${umText(v.said.um)}` : v.said?.how === 'unclear' ? " · said can't tell" : '';
   const measured = el('span', null, w.measured != null ? `Half height ${umText(w.measured)}` : w.secondPeak ? 'Profile has a second peak' : 'No clear edges');
@@ -251,9 +253,11 @@ function widthCard(m, v) {
   const est = el('span', null, v.width != null ? ` · algorithm ${umText(v.width)}` : ' · drawn by you'); est.id = 'w-estimate'; if (v.width != null) est.dataset.um = v.width.toFixed(3);
   facts.append(measured, est, said);
   if (w.measured != null && v.width != null && Math.abs(w.measured - v.width) / w.measured > .15) facts.append(el('strong', null, ' · more than 15% apart'));
-  const width = el('p', 'w-now', now != null ? `Width ${umText(now)}` : 'Width ?'); width.id = 'w-um';
+  // which width the buttons record: the one at half height, the algorithm's where there is none, and how far stepped
+  const from = w.measured != null ? 'half height' : "the algorithm's", step = st.adjust ? ` ${st.adjust > 0 ? '+' : '−'} ${Math.abs(st.adjust).toFixed(2)}` : '';
+  const width = el('p', 'w-now', now != null ? `Width ${umText(now)} (${from}${step})` : 'Width ?'); width.id = 'w-um';
   const how = st.adjust ? 'nudge' : w.measured != null ? 'measured' : 'nudge';
-  const agree = button(st.adjust ? 'Use this width' : 'Agree', () => now != null && answered({ type: 'set-width', segments: ids(m, v), width: { um: +now.toFixed(3), how } }), 'yes');
+  const agree = button('Agree', () => now != null && answered({ type: 'set-width', segments: ids(m, v), width: { um: +now.toFixed(3), how } }), 'yes');
   agree.disabled = now == null;
   const not = button('Not a vessel', () => answered(v.proposed ? { type: 'decide', segments: ids(m, v), verdict: 'rejected' } : { type: 'delete-segment', segments: ids(m, v) }), 'no');
   const unclear = button("Can't tell", () => answered({ type: 'set-width', segments: ids(m, v), width: { how: 'unclear' } }), 'unclear');
@@ -266,7 +270,8 @@ function widthCard(m, v) {
   return card;
 }
 // the brightness across the vessel, µm ticks, half its height, and the edges of the width now
-function profile(w, now, px) {
+// the algorithm's width, where it has one, as two lines of another colour
+function profile(w, now, px, estimate) {
   const NS = 'http://www.w3.org/2000/svg', W = px, H = 110, s = document.createElementNS(NS, 'svg');
   s.setAttribute('viewBox', `0 0 ${W} ${H}`); s.setAttribute('class', 'profile'); s.style.width = W + 'px'; s.style.height = H + 'px';
   const o = w.offsets, lo = w.floor, hi = Math.max(w.top, lo + 1);
@@ -276,10 +281,10 @@ function profile(w, now, px) {
   add('line', { x1: 6, x2: W - 6, y1: y(w.half), y2: y(w.half), class: 'half' });
   add('text', { x: 8, y: y(w.half) - 3 }, 'half height');
   add('polyline', { points: w.profile.map((v, k) => `${x(o[k])},${y(v)}`).join(' '), class: 'curve' });
-  if (now != null) {
-    const mid = w.edges ? (w.edges[0] + w.edges[1]) / 2 : 0;
-    for (const e of [mid - now / 2, mid + now / 2]) add('line', { x1: x(e), x2: x(e), y1: 4, y2: H - 18, class: 'edge' });
-  }
+  const mid = w.edges ? (w.edges[0] + w.edges[1]) / 2 : 0;
+  if (estimate != null) for (const e of [mid - estimate / 2, mid + estimate / 2]) add('line', { x1: x(e), x2: x(e), y1: 4, y2: H - 18, class: 'estimate' });
+  if (now != null) for (const e of [mid - now / 2, mid + now / 2]) add('line', { x1: x(e), x2: x(e), y1: 4, y2: H - 18, class: 'edge' });
+  add('text', { x: W - 8, y: H - 3, 'text-anchor': 'end' }, 'µm');
   return s;
 }
 

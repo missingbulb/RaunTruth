@@ -382,7 +382,8 @@ owner's decisions on the stacks and the vessel model, are
   step of 2026-11-16, whose "These widths look right" recorded every width nobody touched as looked at. The card shows
   the vessel straightened, from the slices at its depth read between slices, true to scale; the brightness across it,
   averaged over its middle 60%, with µm ticks and a line at half its height; and the two edges where the curve crosses
-  that line, the **half-height width**, written beside the algorithm's. Where the two differ by more than 15% it says
+  that line, the **half-height width**, written beside the algorithm's, which is drawn too, dotted in another colour; the width the
+  buttons record is named with where it starts and how far it was stepped. Where the two differ by more than 15% it says
   so; where the profile has a second peak inside its window it says that, draws no edges, and the width starts from
   the algorithm's. The main view draws the vessel whole. Agree (F) records the half-height width; − and + step it
   0.25 µm narrower or wider and Agree then records that; Not a vessel (J) declines it, or deletes one the person
