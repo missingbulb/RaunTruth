@@ -12,7 +12,6 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
 
-import { tagger } from "./tagger.mjs";
 import { pw, launch, mustHold } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
 import { world } from "./world.mjs";
@@ -38,7 +37,6 @@ const { origin, server } = await serveSite({
 const browser = await launch(pw), w = world(browser, origin);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 
-w.site.withGoogle();
 w.studies.fromThisComputer("fixture");
 const own = (rel) => JSON.parse(fs.readFileSync(path.join(repo, "studies", "fixture", rel), "utf8"));
 const LIST = own("web/algorithms.json"), [first, second] = LIST, listed = own("web/algorithm_metrics.json"), SCORING = listed.scoring;
@@ -61,7 +59,7 @@ const seen = (page) => page.evaluate(() => {
     result: document.querySelector("#fx-result").textContent };
 });
 
-let page = await started(w.device().signedInAs(tagger(w)));
+let page = await started(w.device().signedInAs(w.tagger()));
 let s = await seen(page);
 const once = s.result;
 mustHold(!s.dialog && once.includes(first.title), "Start opens no dialog and runs the algorithm the study's list marks default", s);
@@ -86,7 +84,7 @@ mustHold(q.open && q.said && q.items.join("|") === SCORING.split("\n").map((l) =
 await page.context().close();
 
 // the default is the one the list marks, not the first: the same list with its second marked
-const other = w.device().signedInAs(tagger(w));
+const other = w.device().signedInAs(w.tagger());
 await defaultIs(await other.context(), "fixture", second.key);
 page = await started(other);
 s = await seen(page);
@@ -97,7 +95,7 @@ mustHold(s.items.length === 1 && !s.bold, "how it works is its own, with no prec
 await other.close();
 
 // a list that marks none: nothing runs, and the page says whose error it is
-const none = w.device().signedInAs(tagger(w));
+const none = w.device().signedInAs(w.tagger());
 (await none.context()).route("**/studies/fixture/web/algorithms.json", (route) => route.fulfill({ contentType: "application/json", body: JSON.stringify(LIST.map(({ default: _, ...a }) => a)) }));
 page = await none.opens("fixture");
 await page.setInputFiles("#file", image);
@@ -110,7 +108,7 @@ await none.close();
 
 // a study from Review on: its metrics carry a stamp for each version, and the fold shows the default's (req/shell/processing/stamp)
 const STAMP = { version: first.key, dataset_sha256: "0123456789abcdef".repeat(4), frozen: "2026-11-23", commit: "c0ffee1234567890c0ffee1234567890c0ffee12" };
-const reviewed = w.device().signedInAs(tagger(w));
+const reviewed = w.device().signedInAs(w.tagger());
 (await reviewed.context()).route("**/algorithm_metrics.json", (route) => route.fulfill({ contentType: "application/json",
   body: JSON.stringify({ ...listed, versions: { ...listed.versions, [first.key]: { ...listed.versions[first.key], stamp: STAMP } } }) }));
 page = await started(reviewed);

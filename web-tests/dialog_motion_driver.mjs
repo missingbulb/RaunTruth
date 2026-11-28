@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 import { frames } from "./page_frames.mjs";
+import { atRest } from "./page_motions.mjs";
 import { pw, launch, mustHold } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
 import { world } from "./world.mjs";
@@ -63,7 +64,10 @@ const near = (a, b, by = 2) => Math.abs(a - b) <= by;
     const f = await opened(page, dlg);
     await mustHold(f.open && f.made >= 1, `${btn} opens ${what}, animated`, f);
     await page.waitForFunction((id) => { const m = window.dialogMotions[id]; return m && m.ended === m.made; }, dlg.slice(1));
-    const last = await page.evaluate((dlg) => { const d = document.querySelector(dlg), r = d.getBoundingClientRect(); return { w: r.width, h: r.height, ow: d.offsetWidth, oh: d.offsetHeight, n: d.getAnimations({ subtree: true }).length }; }, dlg);
+    // and the stylesheet's own transitions of the dialog, which end beside the scripted motion, not with it
+    await atRest(page, dlg);
+    const last = await page.evaluate((dlg) => { const d = document.querySelector(dlg), r = d.getBoundingClientRect(); return { w: r.width, h: r.height, ow: d.offsetWidth, oh: d.offsetHeight, n: d.getAnimations({ subtree: true }).length,
+      running: d.getAnimations({ subtree: true }).map((a) => `${a.animationName || a.transitionProperty || a.constructor.name} on ${a.effect?.target?.id || a.effect?.target?.className || a.effect?.target?.localName} ${a.playState} ${Math.round(a.currentTime ?? -1)}/${a.effect?.getComputedTiming().endTime}`) }; }, dlg);
     await mustHold(near(last.w, last.ow) && near(last.h, last.oh) && last.n === 0, `then ends at its own size`, last);
     await page.keyboard.press("Escape");
   }

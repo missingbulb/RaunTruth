@@ -6,16 +6,16 @@
 // Exits 1 on a failed check, 2 when it cannot run.
 //   node tests/slow_machine_page_driver.mjs ANSWERS IMAGE [SHOTS]
 import { fromScratch } from "../../../web-tests/annotating.mjs";
+import { unsettled } from "../../../web-tests/page_acts.mjs";
 import { EARLY } from "../../../web-tests/early_messages.mjs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
-import { TAGGER } from "../../../web-tests/tagger.mjs";
 import { openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { studies as studiesOf } from "../../../web-tests/fakes/studies.mjs";
 import { siteSettings } from "../../../web-tests/fakes/site_settings.mjs";
 import { pw, launch, expecting, mustHold } from "../../../web-tests/harness.mjs";
-import { world } from "../../../web-tests/world.mjs";
+import { world, TAGGER } from "../../../web-tests/world.mjs";
 import { idle } from "../../../web-tests/page_until.mjs";
 import { stepsOf } from "../../../web-tests/page_steps.mjs";
 import { held as holding } from "../../../web-tests/held.mjs";
@@ -119,7 +119,7 @@ const unfold = async (page, box) => { await page.evaluate((b) => { const e = $(b
   await free(page, "#image-pick");
   await fromScratch(page, "#find");
   const detected = answered(page, "run");
-  await page.click("#find");
+  await unsettled(page).click("#find");
   mustHold(await held(page, "#find"), "Find Candidates is held at once, with its spinner");
   await shot(page, "find_working", ".row:has(#find)");
   await detected;
@@ -174,7 +174,7 @@ const unfold = async (page, box) => { await page.evaluate((b) => { const e = $(b
   const page = await device.opens("nor", { until: "none" });
   await code.asked;
   await page.waitForFunction(() => window.shellForTests && $("#file").onchange);
-  await page.setInputFiles("#file", image);
+  await unsettled(page).setInputFiles("#file", image);
   await page.waitForFunction(() => !!st.img || shellForTests.work.doing.includes("waiting for the study"), null, { timeout: 4 * LATE + 2000 });
   code.release();
   await idle(page, { timeout: 4 * LATE + 2000 });

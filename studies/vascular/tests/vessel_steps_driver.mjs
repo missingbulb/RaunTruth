@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
 
-import { serve, atStage, taggersDevice } from "./stand_in.mjs";
+import { serve, atStage } from "./stand_in.mjs";
 import { openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { frames as framesOf } from "../../../web-tests/page_frames.mjs";
 import { pw, launch, check } from "../../../web-tests/harness.mjs";
@@ -56,11 +56,9 @@ const JUNCTION = node([110, 40]);
 const site = await serve(studies, model);
 
 const browser = await launch(pw), w = world(browser, site.origin);
-// the deploy with a Google key, the page offering no sign-in
-w.site.withoutGoogleClient();
 atStage(browser, "Develop");
 let failed = false;
-const device = taggersDevice(w).with({ deviceScaleFactor: 1, acceptDownloads: true });
+const device = w.device().signedInAs(w.tagger("vascular")).with({ deviceScaleFactor: 1, acceptDownloads: true });
 let page;
 
 const tasks = () => page.evaluate(() => window.vascular.tasks());

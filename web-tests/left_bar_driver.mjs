@@ -10,7 +10,6 @@ import { EARLY } from "./early_messages.mjs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
-import { tagger } from "./tagger.mjs";
 import { record, begun, moved } from "./page_motions.mjs";
 import { pw, launch, mustHold } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
@@ -37,9 +36,8 @@ const { origin, server } = await serveSite({
 const browser = await launch(pw), w = world(browser, origin);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 
-w.site.withGoogle();
 w.studies.fromThisComputer("fixture");
-const device = w.device().signedInAs(tagger(w)).withEditHistoryShown();
+const device = w.device().signedInAs(w.tagger()).withEditHistoryShown();
 await record(await device.context());
 const page = await device.opens("fixture");
 

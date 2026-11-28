@@ -12,6 +12,7 @@
 // Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/account_driver.mjs [SHOTS]
 import { isDeepStrictEqual as same } from "node:util";
+import { unsettled } from "./page_acts.mjs";
 import path from "node:path";
 
 import { cutShort } from "./page_errors.mjs";
@@ -124,7 +125,7 @@ try {
   check(file()["nor-tips-closed"] === JSON.stringify(["recent-files", "sign-in"]) && !("nor-bars-v1" in file()),
     "the file holds the settings that follow the user, not the left bar's width");
   await a.page.click("body", { position: { x: 700, y: 500 } });
-  await a.page.click("#theme");
+  await unsettled(a.page).click("#theme");
   check(await a.page.evaluate(() => shellForTests.work.doing.join()).then((d) => /settings/.test(d)), "... and until it has, the save still owed counts as the page's work");
   await idle(a.page);
   check(file()?.["nor-theme"] === "light" && (await signedIn(a.page)).changed.length === 0,
@@ -172,10 +173,10 @@ try {
   {
     const gates = [], writes = () => google.calls.filter((c) => /^PATCH /.test(c)).length, before = writes();
     google.hold = () => new Promise((ok) => gates.push(ok));
-    await a.page.click("#theme");
+    await unsettled(a.page).click("#theme");
     await until(() => writes() > before);
     // changed while that save is held, and saved after it, held too
-    await a.page.click("#theme");
+    await unsettled(a.page).click("#theme");
     await until(() => writes() > before + 1);
     gates.shift()();
     await until(() => file()?.["nor-theme"] === "dark");
@@ -190,7 +191,8 @@ try {
     await until(() => file()?.["nor-theme"] === "light");
     await tab.close();
   }
-  // the tip closed again, as the rest of this test expects of the file
+  // the tip closed again, as the rest of this test expects of the file, once the page has ended what it was doing
+  await idle(a.page);
   ada.savedSettings({ ...file(), "nor-tips-closed": JSON.stringify(["recent-files"]) });
   // animations turned off on another device
   ada.savedSettings({ ...file(), "nor-motion": "false" });
@@ -249,6 +251,7 @@ try {
   const renewal = (await b.page.evaluate(() => window.tokenClient.asked))[0];
   check(await askedNow() === 1 && renewal?.prompt === "" && renewal.login_hint === "ada@acme.example", "renewing asks Google once, silently, for the same user");
 
+  await idle(b.page);
   ada.savedSettings({ ...file(), "nor-theme": "dark" }); // another device
   await expire();
   await b.page.click("#image-pick");
@@ -263,12 +266,12 @@ try {
   let release, reached;
   const held = new Promise((ok) => { release = ok; }), writing = new Promise((ok) => { reached = ok; });
   google.hold = () => { reached(); return held; };
-  await b.page.click("#theme");
-  await b.page.click("#theme");
+  await unsettled(b.page).click("#theme");
+  await unsettled(b.page).click("#theme");
   await Promise.race([writing, new Promise((ok) => setTimeout(ok, STEP))]); // bounds a hang: a save that never starts fails the checks below
   const saved = orMissed(b.page.waitForResponse((r) => /upload\/drive/.test(r.url()) && r.request().method() !== "GET", { timeout: STEP }));
-  await b.page.click("#user-menu summary");
-  await b.page.click("#sign-out");
+  await unsettled(b.page).click("#user-menu summary");
+  await unsettled(b.page).click("#sign-out");
   await b.page.waitForFunction(() => document.querySelector("#sign-out").hidden);
   release(); google.hold = () => null;
   check(await saved, "a save on its way as the user signs out is answered after", null);

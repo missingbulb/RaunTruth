@@ -12,7 +12,6 @@ import path from "node:path";
 import { helpTip } from "./help_tip.mjs";
 
 import { motion, record, begun, moved } from "./page_motions.mjs";
-import { TAGGER } from "./tagger.mjs";
 import { pw, launch, mustHold } from "./harness.mjs";
 import { world } from "./world.mjs";
 import { serveSite } from "./site_server.mjs";
@@ -43,10 +42,8 @@ const { origin, server } = await serveSite({
 const browser = await launch(pw), w = world(browser, origin);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 
-w.site.withGoogle();
 w.studies.fromThisComputer("fixture");
-const tagger = w.user(TAGGER).named("Acme Tagger").annotates("fixture");
-const device = w.device().signedInAs(tagger);
+const device = w.device().signedInAs(w.tagger("fixture"));
 await record(await device.context());
 const page = await device.opens("fixture");
 const shot = async (name, sel) => { if (shots) await page.locator(sel).screenshot({ path: path.join(shots, name + ".png") }); };
@@ -262,6 +259,8 @@ await mustHold(more.shown && !more.open && more.n === more.rows && more.names.in
 
 // ---- Unload, from the keyboard (a click focuses no button in Safari): the page as it was before any image ----
 await page.focus("#unload");
+// each time the keyboard leaves Load while the study starts over
+await page.evaluate(() => { window.leftLoad = 0; document.querySelector("#load-main").addEventListener("blur", () => { window.leftLoad++; }); });
 await page.keyboard.press("Enter");
 await page.waitForFunction(() => document.querySelector("#file-box").hidden && document.querySelector("#fx-result") && document.querySelector("#status").textContent.startsWith("Ready"));
 const clear = await page.evaluate(() => ({ stage: document.querySelector("#stage").hidden, empty: !document.querySelector("#empty").hidden,
@@ -272,6 +271,7 @@ const clear = await page.evaluate(() => ({ stage: document.querySelector("#stage
 await mustHold(await page.evaluate(() => document.querySelector("#file-name").textContent === ""), "with no image, the Image box names none (req/shell/load/button)");
 await mustHold(clear.stage && clear.empty && !clear.minimap && !clear.unload && !clear.img, "Unload clears the image, the minimap and itself", clear);
 await mustHold(await page.evaluate(() => document.activeElement?.id) === "load-main", "and the keyboard, which was on Unload, is on Load", await page.evaluate(() => document.activeElement?.id || document.activeElement?.localName));
+await mustHold(await page.evaluate(() => window.leftLoad) === 0, "and stays there while the study starts over", await page.evaluate(() => window.leftLoad));
 await mustHold(clear.shine && !clear.done && await stepsOf(page) === "Load image*", "Load shines again, and the steps start over", clear);
 await mustHold(clear.fx === "Nothing counted yet." && !clear.overlay && clear.status.startsWith("Ready"), "the study starts over too", clear);
 await mustHold(await page.evaluate(() => [...document.querySelectorAll("#left > .box.foldable")].filter((b) => b.checkVisibility()).map((b) => b.classList.contains("folded")).join()) === "false,true,true", "and the boxes on show fold as before any image");

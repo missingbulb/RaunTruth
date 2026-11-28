@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
 import { ENGINE, SOFTWARE_3D } from "../../../web-tests/engine.mjs";
-import { serve, atStage, taggersDevice, ALGORITHMS, drawnStack } from "./stand_in.mjs";
+import { serve, atStage, ALGORITHMS, drawnStack } from "./stand_in.mjs";
 import { openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { viewDrawn } from "../../../web-tests/page_frames.mjs";
 import { pw, launch, check } from "../../../web-tests/harness.mjs";
@@ -25,11 +25,9 @@ const model = JSON.parse(fs.readFileSync(path.join(here, "fixtures", "cd31_front
 const site = await serve(studies, model);
 
 const browser = await launch(pw), w = world(browser, site.origin);
-// the deploy with a Google key, the page offering no sign-in
-w.site.withoutGoogleClient();
 atStage(browser, "Develop");
 let failed = false;
-const device = taggersDevice(w).with({ ...SOFTWARE_3D, acceptDownloads: true });
+const device = w.device().signedInAs(w.tagger("vascular")).with({ ...SOFTWARE_3D, acceptDownloads: true });
 let page;
 
 // the 3D view's brightness, the whole stack in view from above: its mean over every pixel of red, green and blue

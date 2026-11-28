@@ -36,8 +36,6 @@ const FILES = [
 const { origin, server } = await serveSite({ "/web/worker.js": "" });
 
 const browser = await launch(pw), w = world(browser, origin);
-// the deploy with a Google key
-w.site.withoutGoogleClient();
 // the browser's Drive, every context's, with the folder of TIFFs; reads(): every read of a file's bytes since the
 // test cleared them, its row and the Range asked for ("" for the whole file)
 const { drive } = w, shapes = w.folder("Shapes").public();
@@ -46,7 +44,7 @@ let readsFrom = 0;
 const reads = () => drive.calls.slice(readsFrom).filter((c) => c.kind === "download").map((c) => ({ k: FILES.findIndex((f) => f.id === c.id), range: c.range || "" }));
 // a device remembering the folder's link, opened at the page; keys: kept before the page opens
 async function start(keys = {}) {
-  const device = w.device().remembersDriveLink(shapes).keeps(keys);
+  const device = w.visitorWithLink(shapes).keeps(keys);
   return { device, page: await device.opens(undefined, { until: "title" }) };
 }
 const { page } = await start();

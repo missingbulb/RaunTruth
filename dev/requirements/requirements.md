@@ -509,7 +509,9 @@ nobody has decided: what the page does there is not a requirement yet.
   through one fold the page's parts share (a part marked `data-fold`): the opened image's details, the line under the
   choice of an analysis, the bar of a selection's actions and a run's results, the list of images newer than their
   ground truth; and a finished task draws in to its ticked line. Not folded yet, and still a cut: a details under its
-  heading (Show how, an explanation), an inline confirmation, and a correction leaving the sharing list. The line
+  heading (Show how, an explanation), an inline confirmation, a correction leaving the sharing list, and, in Firefox and
+  Safari, the dimmed backdrop behind a closing dialog, which those browsers draw only while the dialog is open (left so
+  by the owner on 2026-11-28). The line
   saying the study's stage keeps its place from the start, so nothing below it is pushed.
   Edit History draws in toward its toolbar button as it hides. Grid and List change by one fading into the other. The
   button of the step to do
@@ -517,7 +519,7 @@ nobody has decided: what the page does there is not a requirement yet.
   happens at once. Test: `web-tests/test_dialog_motion_page.py`, `web-tests/test_fold_motion_page.py`.
   </details>
 
-- `req/shell/dialogs/focus-kept` When the control holding the keyboard is redrawn, hidden or disabled, the keyboard stays on the page.
+- `req/shell/dialogs/focus-kept` When the control holding the keyboard is redrawn, hidden or disabled, the keyboard stays on the page. A control that lets the keyboard go while it is still there and usable leaves it on the page itself, in every browser.
   <details>
 
   Set by the owner on 2026-11-26 (issues 1101, 1107, 1108). A control can go while it has the keyboard:
@@ -2676,8 +2678,9 @@ nobody has decided: what the page does there is not a requirement yet.
 
   Set by the owner on 2026-11-20, in place of the fast set each PR ran and the full set only main did. Each PR runs
   the whole set on Chromium (`.github/workflows/tests.yml`), split across three runners side by side, each running a
-  third of the tests (set by the owner on 2026-11-21; `dev/tools/test-image/shard.py`, test
-  `dev/tools/test-image/test_shard.py`), and every push to main runs it again, so it has run on
+  third of the tests (set by the owner on 2026-11-21), the thirds as near each other in time as the tests' lengths
+  allow, by what each test last took (set by the owner on 2026-11-27; `dev/tools/test-image/shard.py`, its times in
+  `durations.json`, written by `durations.py` from a run with `--durations=0`; test `dev/tools/test-image/test_shard.py`), and every push to main runs it again, so it has run on
   anything a release can ship: a green run on main wakes the site release (`.github/workflows/tests-full.yml`). The
   nightly run also runs it on Firefox and WebKit (`req/checks/other-engines`). The `full` mark still names the tests that
   drive Node, Pyodide or a browser, or measure speed or memory, so `-m "not full"` stays a quick local loop

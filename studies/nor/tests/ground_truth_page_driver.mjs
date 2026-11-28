@@ -15,7 +15,6 @@ import { annotateIfAsked } from "../../../web-tests/annotating.mjs";
 import { EARLY } from "../../../web-tests/early_messages.mjs";
 import fs from "node:fs";
 
-import { TAGGER } from "../../../web-tests/tagger.mjs";
 import { studies as studiesOf } from "../../../web-tests/fakes/studies.mjs";
 import { pw, launch, mustHold } from "../../../web-tests/harness.mjs";
 import { world, DRIVE_FILE } from "../../../web-tests/world.mjs";
@@ -47,8 +46,7 @@ const { origin, server } = await serveSite({
 });
 
 const browser = await launch(pw), w = world(browser, origin);
-w.site.withGoogle();
-const tagger = w.user(TAGGER).named("Acme Tagger").annotates("nor");
+const tagger = w.tagger("nor");
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 // the image on Drive, in the study's own folder
 const DRIVE_ID = w.studyFolder("nor").holds({ name: "corner.tif", mimeType: "image/tiff", bytes: fs.readFileSync(image) }).id;

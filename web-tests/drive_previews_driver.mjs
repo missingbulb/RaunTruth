@@ -24,8 +24,7 @@ const FILES = fs.readdirSync(images).sort().map((name) => ({ name, bytes: fs.rea
 const { origin, server } = await serveSite({ "/web/worker.js": "" });
 
 const browser = await launch(pw), w = world(browser, origin), drive = w.drive;
-// the deploy's Google key, IMAGES on Drive, and the Image Viewer opening photos too
-w.site.withoutGoogleClient();
+// IMAGES on Drive, and the Image Viewer opening photos too
 const shown = w.folder("Previews test").public();
 const files = FILES.map((f) => shown.holds(f, { createdTime: "2026-10-01T10:00:00Z" }));
 w.studies.edit("viewer", (own) => ({ ...own, files: { ...own.files, accept: own.files.accept + ",.jpg" } }));
@@ -33,7 +32,7 @@ const file = (name) => files.find((f) => f.name === name);
 // a device of its own remembering the folder's link, opened at the page; previews: a copy of the folder's previews
 // file kept on it before the page opens, {url, headers, bytes} as Cache Storage holds it
 async function start(previews) {
-  const device = w.device().kept().remembersDriveLink(shown);
+  const device = w.visitorWithLink(shown).kept();
   if (previews) device.keepsCached("nor-previews-v1", [{ ...previews, bytes: Buffer.from(previews.bytes, "base64") }]);
   const page = await device.opens(undefined, { until: "title" });
   if (previews) await page.evaluate(() => window.worldCached);

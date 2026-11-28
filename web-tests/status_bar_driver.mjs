@@ -15,7 +15,6 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
 
-import { tagger } from "./tagger.mjs";
 import { pw, launch, expecting, NETWORK_GONE, mustHold } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
 import { orMissed } from "./page_until.mjs";
@@ -57,7 +56,6 @@ const { origin, server } = await serveSite({
 });
 
 const browser = await launch(pw), w = world(browser, origin);
-w.site.withGoogle();
 w.studies.fromThisComputer("fixture");
 // the fixture at the stage the test sets, and listed, as the build lists no fixture, so its row in the switcher carries it
 w.studies.edit("fixture", (m) => (stage ? { ...m, stage } : m));
@@ -83,7 +81,7 @@ const bars = (page) => page.evaluate(() => {
 // clock: the page's clock made one the test can move past a wait on the page's own timers; it runs as the real one does;
 // seed: browser keys kept before the page opens
 async function open(study, mode, clock, seed = {}) {
-  const device = w.device().with({ acceptDownloads: true }).signedInAs(tagger(w))
+  const device = w.device().with({ acceptDownloads: true }).signedInAs(w.tagger())
     .keeps({ ...(mode ? { "nor-resources": JSON.stringify(mode) } : {}), ...seed });
   const ctx = await device.context();
   if (clock) await ctx.clock.install();
@@ -401,7 +399,8 @@ const count = async (page) => { await fromScratch(page, "#fx-count"); await page
   const block = () => page.evaluate(() => ({ items: Math.round(document.querySelector("#sb-res-items").getBoundingClientRect().width),
     icon: Math.round(document.querySelector("#sb-res-icon").getBoundingClientRect().width),
     raised: document.querySelector("#sb-res").classList.contains("raised"), hovered: document.querySelector("#sb-res").matches(":hover"),
-    classes: document.querySelector("#sb-res").className }));
+    classes: document.querySelector("#sb-res").className, mode: document.querySelector("#sb-res").dataset.mode,
+    maxWidth: getComputedStyle(document.querySelector("#sb-res-items")).maxWidth }));
   const isOpen = async (want, what, ms = 1500) => {
     await orMissed(page.waitForFunction((w) => (document.querySelector("#sb-res-items").getBoundingClientRect().width > 150) === w, want, { timeout: ms }));
     // and its folding or unfolding over, whichever is under way: the four's and the icon's, which each run their own
@@ -419,7 +418,8 @@ const count = async (page) => { await fromScratch(page, "#fx-count"); await page
   await mustHold(/max-width|width|all/.test(look.property) && look.ms >= 150, "folding and unfolding is animated", look);
   await page.hover("#sb-res-icon");
   await isOpen(true, "hovering the icon unfolds the four as they look always open");
-  await mustHold((await block()).icon > 10 && await page.evaluate(() => document.querySelector("#sb-res-items").getBoundingClientRect().right <= document.querySelector("#sb-res-icon").getBoundingClientRect().left),
+  // a hundredth of a pixel apart is touching: Firefox lays out in sixtieths of a pixel, and adds them up in floats
+  await mustHold((await block()).icon > 10 && await page.evaluate(() => document.querySelector("#sb-res-items").getBoundingClientRect().right <= document.querySelector("#sb-res-icon").getBoundingClientRect().left + 0.01),
     "the icon staying, the four opening beside it", await block());
   await shot(page, "9-resources-unfolded");
   const unfolded = await bars(page);
@@ -452,6 +452,7 @@ const count = async (page) => { await fromScratch(page, "#fx-count"); await page
   await mustHold((await block()).icon > 10, "the icon coming back");
   await page.click("#sb-res-icon");
   await page.waitForFunction(() => document.querySelector("#usage-dlg").open);
+  await atRest(page, "#usage-dlg");
   if (shots) await page.screenshot({ path: path.join(shots, "12-resources-setting.png") });
   const mode = await page.evaluate(() => { const b = document.querySelector("#res-mode"); return { type: b?.type, checked: b?.checked, label: b?.closest("label")?.textContent.trim(), row: !!b?.closest(".dlg-row.end"),
     left: b && b.closest("label").getBoundingClientRect().left - b.closest(".dlg-row").getBoundingClientRect().left, level: b && Math.abs(b.closest("label").getBoundingClientRect().bottom - [...b.closest(".dlg-row").querySelectorAll("button")].at(-1).getBoundingClientRect().bottom), selects: document.querySelectorAll("#usage-dlg .res-mode select").length }; });

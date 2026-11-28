@@ -47,7 +47,9 @@ export function loadBox(shell) {
   // the controls to load with take the study's form, and show only once they have one (req/shell/load/from)
   function placeLoad() {
     $("#load").toggleAttribute("data-remote", fromRemote()); $("#load").toggleAttribute("data-local", fromLocal()); $("#image-box").dataset.placed = "";
-    if (fromRemote()) $("#file-tags").before($("#load")); else $("#image-foot").prepend($("#load"));
+    // moved only when it is not already in place, so the keyboard on Load stays there
+    if (fromRemote()) { if ($("#file-tags").previousElementSibling !== $("#load")) $("#file-tags").before($("#load")); }
+    else if ($("#image-foot").firstElementChild !== $("#load")) $("#image-foot").prepend($("#load"));
   }
   // the Image box draws from the page's state: the image's name, its tags in the study and what its file says, the
   // control to load with filled until an image is open and plain after, and Unload once one is

@@ -62,13 +62,10 @@ await aspect(page, "truth");
 await check(await text(page, "#stage-find") === "Find images with newer Analysis Files" && await visible(page, "#stage-find"), "Ground Truth has a button, Find images with newer Analysis Files", await text(page, "#stage-find"));
 await aspect(page, "images");
 await page.click("#data-tree .tree-folder .name");
-await page.waitForFunction(() => document.querySelectorAll("#folder-items .cell").length === 3);
 await page.click('#folder-items .cell:has(.name:text-is("img2.png")) .name');
-await page.waitForFunction(() => document.querySelectorAll("#marks-list .mark-row").length === 1);
+await check(await page.evaluate(() => document.querySelectorAll("#marks-list .mark-row").length === 1), "the image's one extraction is listed");
 await page.click(`#marks-list .mark-row[data-id="${y2.id}"] button[data-kind="official"]`);
-await page.waitForFunction(() => !document.querySelector("#marks-list button:disabled") && /^(Marked|Took)/.test(document.querySelector("#marks-msg").textContent));
-await idle(page);
-await check(study().marks[shaOf("img2.png")].official?.file === y2.id, "a mark is written", study().marks);
+await check(await page.evaluate(() => !document.querySelector("#marks-list button:disabled") && /^(Marked|Took)/.test(document.querySelector("#marks-msg").textContent)) && study().marks[shaOf("img2.png")].official?.file === y2.id, "a mark is written", study().marks);
 await check([...subs()].every((n) => n === "img2") && (await page.evaluate(() => $("#stage-newer-box").hidden)), "writing a mark lists only the extractions of the image it is on, and no list of newer ones", lists());
 
 // promote to Analyze: the stage is written into the study file, its other keys kept, and the sharing is checked again
@@ -99,7 +96,6 @@ await check(!lists().slice(listed).includes("img1") && (await page.evaluate(() =
 // the button runs the listing and shows the image with an extraction newer than its GT, and not the one without
 await aspect(page, "truth");
 await page.click("#stage-find");
-await page.waitForFunction(() => document.querySelectorAll("#stage-newer li").length >= 1);
 await check(JSON.stringify(await names(page, "#stage-newer li")) === JSON.stringify(["img1.png"]), "pressing it lists the image with an extraction newer than its GT, and not the one without", await names(page, "#stage-newer li"));
 await check(lists().slice(listed).includes("img1") && lists().slice(listed).includes("img2"), "by one extractions listing per GT-marked image", lists().slice(listed));
 await check(study().stage === "Analyze" && study().marks?.[shaOf("img1.png")]?.gt?.file === y1.id && study().extractions === GT.extractions, "promoting writes the stage into the study file and keeps the rest of it", study());
@@ -110,15 +106,13 @@ await check(drive.writes.slice(wrote).every((w) => w[0] === "replace" && w[1] ==
 await check(await text(page, "#stage-up") === "Promote to Review…", "the way into Review is marked as asking", await text(page, "#stage-up"));
 const listsBefore = lists().length;
 await page.click("#stage-up");
-await page.waitForFunction(() => document.querySelector("#stage-freeze-dlg").open);
-await check(lists().length > listsBefore, "promoting to Review lists the extractions before the Freeze dialog is shown", lists().slice(listsBefore));
+await check(await page.evaluate(() => document.querySelector("#stage-freeze-dlg").open) && lists().length > listsBefore, "promoting to Review lists the extractions before the Freeze dialog is shown", lists().slice(listsBefore));
 await check(/marking|marks/i.test(await text(page, "#stage-freeze-dlg")) && /data/i.test(await text(page, "#stage-freeze-dlg")), "it says marking and data close", await text(page, "#stage-freeze-dlg"));
 await check(JSON.stringify(await names(page, "#stage-freeze-newer li")) === JSON.stringify(["img1.png"]), "and lists the images with newer unmarked extractions again", await names(page, "#stage-freeze-newer li"));
 await page.click("#stage-freeze-cancel");
 await page.waitForFunction(() => !document.querySelector("#stage-freeze-dlg").open);
 await check(study().stage === "Analyze", "Cancel leaves the stage as it was", study().stage);
 await page.click("#stage-up");
-await page.waitForFunction(() => document.querySelector("#stage-freeze-dlg").open);
 await page.click("#stage-freeze");
 await settledStage(page, "Review");
 await check(study().stage === "Review", "Freeze writes Review into the study file", study().stage);
@@ -126,10 +120,8 @@ await check(study().stage === "Review", "Freeze writes Review into the study fil
 // frozen: no data control, no mark button; the stage and the way back stay
 await aspect(page, "images");
 await page.click("#data-tree .tree-folder .name");
-await page.waitForFunction(() => document.querySelectorAll("#folder-items .cell").length === 3);
 await page.click('#folder-items .cell:has(.name:text-is("img1.png")) .name');
-await page.waitForFunction(() => document.querySelectorAll("#marks-list .mark-row").length === 2);
-await check(!(await visible(page, "#marks-list button.mark-gt")) && !(await visible(page, "#marks-list button.mark-official")), "after the freeze the extractions show with no mark button", await page.evaluate(() => document.querySelector("#marks-list").innerHTML));
+await check(await page.evaluate(() => document.querySelectorAll("#marks-list .mark-row").length === 2) && !(await visible(page, "#marks-list button.mark-gt")) && !(await visible(page, "#marks-list button.mark-official")), "after the freeze the extractions show with no mark button", await page.evaluate(() => document.querySelector("#marks-list").innerHTML));
 await check(!(await visible(page, "#data-add")) && !(await visible(page, "#data-tree .unlist")), "and the data controls are gone");
 await check(await visible(page, "#stage-back") && await text(page, "#stage-back") === "Move back to Analyze…" && await text(page, "#stage-up") === "Promote to Public…", "while the stage's own buttons remain", { up: await text(page, "#stage-up") });
 await check(await text(page, "#stage-newer") === null || !(await visible(page, "#stage-newer li")), "the list of newer extractions is a thing of before Review");

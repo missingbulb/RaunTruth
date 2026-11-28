@@ -8,6 +8,9 @@
 //   w.studies.atStage("nor", "Analyze");                  the studies as served (fakes/studies.mjs)
 //   const ada = w.user("ada@acme.example").named("Ada").without(DRIVE_FILE).savedSettings({ "nor-theme": "dark" }).annotates("nor");
 //   w.studyFolder("nor").readableBy(ada)                  a study's members, Drive's readers of its root
+//   const tagger = w.tagger("nor");                       someone who may save the study's ground truth
+//     (req/shell/annotate/no-save): the site deployed with Google, TAGGER named Acme Tagger, annotating those studies
+//     (every study's with none named), their Drive holding no settings of the site's yet, whatever an earlier visit saved
 //   w.folder("Root C").public().saysStudy({ stage: "Public" })   a root's study file, as Study Setup left it; .study() reads it back
 //   const cache = w.folder("Cache").public();             a Drive folder, its sharing said as a test means it
 //   const a = cache.holds(image.png("a.png"));            what it holds (images.mjs), a.id its Drive id
@@ -17,16 +20,21 @@
 //   const page = await w.device().signedInAs(ada).keeps({ "nor-motion": "false" }).opens("nor");
 //   w.device().kept()                                     a browser profile of its own, for what Playwright's WebKit
 //     empties from a throwaway context (harness.mjs's keptContext)
+//   const device = w.visitorWithLink(cache);              a device no one is signed in on, on a deploy with the site's
+//     Google key and no client, the Drive dialog's link to the folder kept from before
 // A device, unless told: no one signed in, the opening popup answered (google signed in, else anonymous), the site's
 // worker gone, 1400x900, and a page that waits until the study says Ready. opens() alone is the site's own address.
+// The page's actions each end once the page has ended the work they set off (page_acts.mjs).
 import { driveIn } from "./fakes/google_drive.mjs";
 import { SCOPES, signInIn } from "./fakes/google_sign_in.mjs";
 import { settingsIn } from "./fakes/site_settings.mjs";
 import { studies as studiesOf, studiesIn } from "./fakes/studies.mjs";
 import { pw, keptContext, worldOf, atRest } from "./harness.mjs";
 import { STEP } from "./deadlines.mjs";
+import { settle } from "./page_acts.mjs";
 
 export const DRIVE_FILE = "https://www.googleapis.com/auth/drive.file";
+export const TAGGER = "tagger@acme.example";
 const STUDY_FILE = "rauntruth-study.json";
 // what a page waits on before a test goes on: the study's Python ready, the page's title drawn, or nothing
 const UNTIL = {
@@ -143,11 +151,19 @@ export function world(browser, origin) {
       };
       return user;
     },
+    tagger(...studies) {
+      w.site.withGoogle();
+      return w.user(TAGGER).named("Acme Tagger").savedSettings(null).annotates(...studies);
+    },
+    visitorWithLink(folder) {
+      w.site.withoutGoogleClient();
+      return w.device().remembersDriveLink(folder);
+    },
 
     device() {
       const kept = {}, visit = {}, options = { viewport: { width: 1400, height: 900 } };
       const cached = [], served = [];
-      let who = null, left = 3599e3, granted, known, welcome, drafts = [], worker = false, profile = false, given = null, held, waiting, remember = true, ctx = null;
+      let who = null, left = 3599e3, granted, known, welcome, drafts = [], worker = false, profile = false, given = null, held, waiting, remember = true, ctx = null, sizeKeywords = true;
       const device = {
         // signed in on the device, Google's token lasting left ms; token: its value, for a test that checks what
         // carried it, else one of the sign-in fake's; unsaved: the settings' keys changed here since Drive last had
@@ -171,6 +187,9 @@ export function world(browser, origin) {
           return device;
         },
         withWorker() { worker = true; return device; },
+        // an engine that cannot move a height to a part's own (auto), as Firefox and Safari: CSS.supports says so of
+        // interpolate-size, and the stylesheet's asking for it is undone
+        withoutSizeKeywordMotion() { sizeKeywords = false; return device; },
         kept() { profile = true; return device; },
         // study id's study.json as this device alone is served it, with these keys (its stage, say)
         withStudy(id, keys) { served.push([id, keys]); return device; },
@@ -182,6 +201,13 @@ export function world(browser, origin) {
         async context() {
           if (ctx) return ctx;
           ctx = given || (profile ? await keptContext(pw, options, shared) : await browser.newContext(options));
+          if (!sizeKeywords) await ctx.addInitScript(() => {
+            const supports = CSS.supports;
+            CSS.supports = (...a) => !/interpolate-size/.test(a[0]) && supports.apply(CSS, a);
+            const sheet = new CSSStyleSheet();
+            sheet.replaceSync(":root { interpolate-size: numeric-only !important; }");
+            document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
+          });
           for (const [id, keys] of served) studiesOf(ctx).edit(id, (m) => ({ ...m, ...keys }));
           const seed = { ...kept };
           if (who) {
@@ -221,7 +247,7 @@ export function world(browser, origin) {
           page.setDefaultTimeout(STEP);
           await page.goto(origin + address);
           await UNTIL[until](page);
-          return page;
+          return settle(page);
         },
         // the hour up for the device, on a page of the site's it has open: Google refuses every token so far, and the
         // page's record of the sign-in says it ran out

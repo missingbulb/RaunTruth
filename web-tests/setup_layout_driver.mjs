@@ -8,6 +8,7 @@ import path from "node:path";
 import { standIn } from "./stand_in_drive.mjs";
 import { idle } from "./page_until.mjs";
 import { held } from "./held.mjs";
+import { unsettled } from "./page_acts.mjs";
 import { expecting } from "./harness.mjs";
 
 const [answers, studies, rootDir, shots] = process.argv.slice(2);
@@ -33,7 +34,7 @@ await check(item[0] === "_blank" && /noopener/.test(item[1]) && item[2] && item[
 const listing = held();
 drive.hold = (call) => (call.kind === "list" ? listing.hold() : null);
 await page.keyboard.press("Escape");
-await page.click("#load-remote");
+await unsettled(page).click("#load-remote");
 await listing.asked;
 await page.waitForFunction(() => document.querySelector('#sb-calls [data-server="store"]'));
 const main = await chip(page);
@@ -79,7 +80,7 @@ await page.waitForFunction(() => document.querySelectorAll("#folder-items .cell"
 await idle(page);
 const first = await cells(page);
 let h = holdListing(sub);
-await page.click(name(sub));
+await unsettled(page).click(name(sub));
 await h.asked;
 const waiting = await page.evaluate(() => ({ cells: document.querySelectorAll("#folder-items .cell").length, wait: document.querySelector("#folder-items .net-wait")?.textContent.trim() || null,
   busy: $("#folder-items").getAttribute("aria-busy"), sums: document.querySelectorAll("#folder-summary dd").length, title: $("#folder-title").textContent }));
@@ -98,7 +99,7 @@ await check((await cells(page)).join() === "c.png" && !(await chip(page)) && (aw
   const w = held();
   drive.hold = (call) => (call.kind === "write" ? w.hold() : null);
   await page.fill("#tags-add", "acme-tag");
-  await page.click("#tags-add-go");
+  await unsettled(page).click("#tags-add-go");
   await w.asked;
   const saving = await chip(page);
   await check(/^Saving to Google Drive/.test(saving?.text || ""), "while a tag is written the status bar says Saving to the store", saving);
@@ -123,10 +124,10 @@ await page.click(name(top));
 await page.waitForFunction((n) => document.querySelectorAll("#folder-items .cell").length === n, first.length);
 await idle(page);
 h = holdListing(sub);
-await page.click(name(sub));
+await unsettled(page).click(name(sub));
 await h.asked;
 drive.hold = () => null;
-await page.click(name(top));
+await unsettled(page).click(name(top));
 await page.waitForFunction((n) => document.querySelectorAll("#folder-items .cell").length === n, first.length);
 h.release();
 await idle(page);

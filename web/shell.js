@@ -37,6 +37,7 @@ import { actionLog, ACTIONS } from "./action_log.js";
 import { identify, verdict } from "./browsers.js";
 import { problemUrl, ACTIONS_QUOTED, ERRORS_QUOTED } from "./problem_report.js";
 import { dialogMotion } from "./dialog_motion.js";
+import { foldMotion } from "./fold_motion.js";
 import { focusReturn } from "./focus_return.js";
 import { truthTagger, LOCAL_GT } from "./truth_tagger.js";
 import { truthHistory } from "./truth_history.js";
@@ -296,6 +297,7 @@ const showUnloading = () => { unloading.checked = readJSON(UNLOAD_PYTHON, false)
 showUnloading();
 unloading.onchange = () => { writeJSON(UNLOAD_PYTHON, unloading.checked); unloadIfDone(); };
 dialogMotion(still);
+foldMotion();
 focusReturn();
 
 $("#sb-net").onclick = () => usage("network");
@@ -532,8 +534,12 @@ function settle(m) {
 }
 // a frame after the button is disabled, so it shows before the work holds the page
 const painted = () => new Promise((ok) => requestAnimationFrame(() => after(0, ok)));
-async function working(btn, action) {
+// a button's action, counted as the page's work from the press until it is done
+function working(btn, action) {
   if (btn.classList.contains("working")) return;
+  return work.during(holding(btn, action), `#${btn.id} at work`);
+}
+async function holding(btn, action) {
   btn.classList.add("working"); btn.disabled = true;
   // whatever the page redraws meanwhile, the button stays held until the action is done
   const hold = new MutationObserver(() => { if (!btn.disabled) btn.disabled = true; });
@@ -1006,7 +1012,8 @@ async function inventory() {
   return { sections: all, settings, overhead };
 }
 // the Storage tab; fresh: just opened, every section folded, where a redraw after a deletion keeps what the user unfolded
-async function storageTab(fresh) {
+function storageTab(fresh) { return work.during(listStorage(fresh), "the storage listing"); }
+async function listStorage(fresh) {
   const list = $("#storage-list"), open = new Set(fresh ? [] : [...list.querySelectorAll(".group[open]")].map((g) => g.dataset.group));
   if (fresh) { list.textContent = "Reading what this device keeps…"; $("#storage-total").textContent = ""; }
   const { sections, settings, overhead } = await inventory();

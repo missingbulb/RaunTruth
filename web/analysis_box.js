@@ -7,6 +7,7 @@
 import { truthTasks } from "./truth_tasks.js";
 import { algorithmChoice } from "./algorithm_choice.js";
 import { remote } from "./drive.js";
+import { work } from "./pending.js";
 import { annotateChoice } from "./annotate_choice.js";
 import { frozen } from "./stages.js";
 import { cell as csvCell } from "./summary_download.js";
@@ -219,7 +220,7 @@ export function analysisBox(shell) {
     done(false);
     // a study with GT actions saves the model's document with its history
     const docOf = () => (shell.gtSession.on() ? shell.gtSession.fileDoc() : gt.doc);
-    send.onclick = async () => {
+    send.onclick = work.counting("analysis upload", async () => {
       send.disabled = true; $("#gt-msg").textContent = "Uploading…";
       const doc = await docOf(), image = { name: st.fileName, sha256: st.sha, source: st.source };
       try {
@@ -246,7 +247,7 @@ export function analysisBox(shell) {
         $("#gt-msg").textContent = `It was not uploaded: ${e.message || e}. Download Analysis, on the Analysis box, keeps a copy.`;
         send.disabled = false;
       }
-    };
+    });
     $("#gt-dlg").showModal();
   }
   // Download Analysis, on the Analysis box's header: the model's document with its history, as a file; where nothing can be
