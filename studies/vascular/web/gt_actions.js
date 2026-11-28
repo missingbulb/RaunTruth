@@ -20,7 +20,7 @@ const pair = (a, b) => (a < b ? `${a}-${b}` : `${b}-${a}`);
 const person = (id) => id >= Mo.USER_NODE;
 // whether the tagger's own work is in a model: a verdict, a width, a point or a vessel of their own, an area or a junction checked
 const worked = (m) => m.segments.some((s) => Mo.decided(s) || s.width || !s.proposed) || [...m.nodes.keys()].some(person)
-  || !!m.reviewed_regions?.length || !!m.checked_junctions?.length;
+  || !!m.reviewed_regions?.length || !!m.checked_junctions?.length || !!m.unclear_junctions?.length;
 
 // The algorithm's output as a model. With the model before it, a point within MATCH_UM in x and y and MATCH_SLICES in z of
 // one of its points takes that point's id, and a segment whose two ends are then those of one of its segments takes its id;
@@ -66,7 +66,7 @@ export function start(output, previous) {
 
 // What the tagger did in the model before, put onto a run's model whose points have taken its ids: the vessels the tagger
 // drew or split, and the points they added, stand as they were (a vessel the run has between the same two points is
-// replaced by them), and so do the areas checked and the junctions found right. A verdict or a width on a segment the run
+// replaced by them), and so do the areas checked and the junctions found right or that nobody could tell. A verdict or a width on a segment the run
 // has none for, and a junction it has no point for, is listed in `dropped` and left out; `leftover` holds the segments of
 // the model before no segment of the run took.
 function carried(previous, m, leftover) {
@@ -96,10 +96,11 @@ function carried(previous, m, leftover) {
     if (!have.has(pair(s.a, s.b)) || person(s.a) || person(s.b)) rest.push({ ...s });
   }
   for (const list of leftover.values()) for (const s of list) if (!mine(s) && (Mo.decided(s) || s.width)) dropped.push(s.id);
-  const checked = (previous.checked_junctions ?? []).filter((id) => nodes.has(id) || (dropped.push(`junction ${id}`), false));
+  const kept_ = (key) => (previous[key] ?? []).filter((id) => nodes.has(id) || (dropped.push(`junction ${id}`), false));
+  const checked = kept_('checked_junctions'), unclear = kept_('unclear_junctions');
   return { ...m, nodes, segments: rest,
     ...(previous.reviewed_regions?.length ? { reviewed_regions: [...previous.reviewed_regions] } : {}),
-    ...(checked.length ? { checked_junctions: checked } : {}), ...(dropped.length ? { dropped } : {}) };
+    ...(checked.length ? { checked_junctions: checked } : {}), ...(unclear.length ? { unclear_junctions: unclear } : {}), ...(dropped.length ? { dropped } : {}) };
 }
 
 // ---------- the model and its file ----------
@@ -131,6 +132,18 @@ function widthsRight(m, a) {
     const open = v.proposed ? v.segments.filter((i) => o.segments[i].state === v.proposed) : [];
     if (open.length) o = Mo.decide(o, open, v.proposed === 'vessel' ? 'accepted' : 'rejected');
     if (Mo.live(o.segments[v.segments[0]]) && !Mo.widthOf(m, v.segments) && v.width != null) o = Mo.setWidth(o, v.segments, { how: 'looked', on: day });
+  }
+  return o;
+}
+
+// an area done in its four steps: its box kept, its vessels left as the algorithm drew them accepted, its faint ones
+// nobody kept declined; a width nobody said stays unsaid
+function areaDone(m, a) {
+  let o = { ...m, reviewed_regions: [...(m.reviewed_regions || []), { ...region(a.box, a.slices, a.at.slice(0, 10)), area: a.area }] };
+  for (const v of build(m, 1).vessels) {
+    if (!inBox(m, a.box, v.path[v.path.length >> 1]) || !v.proposed) continue;
+    const open = v.segments.filter((i) => o.segments[i].state === v.proposed);
+    if (open.length) o = Mo.decide(o, open, v.proposed === 'vessel' ? 'accepted' : 'rejected');
   }
   return o;
 }
@@ -177,6 +190,11 @@ function apply(m, a) {
       const o = Mo.setWidth(m, idx, a.width ? { ...a.width, on: a.at.slice(0, 10) } : null);
       return sameWidth(m, o, idx) ? m : o;
     }
+    case 'unclear-junction': return m.nodes.has(a.node) ? Mo.markUnclear(m, a.node, a.on) : GONE_POINT;
+    case 'missed-checked': return { ...m, reviewed_regions: [...(m.reviewed_regions || []),
+      { ...region(a.box, a.slices, a.at.slice(0, 10)), step: 'missed', area: a.area, slices_seen: a.seen, seconds: a.seconds }] };
+    case 'area-done': return areaDone(m, a);
+    // an area's widths step of 2026-11-16, kept so the logs made with it replay
     case 'widths-right': return widthsRight(m, a);
     default: return { skip: 'not an action of this study' };
   }
@@ -209,7 +227,10 @@ export function describe(a, count = 1) {
       return count > 1 ? `${word} ${count} vessels` : `${word} ${plural(a.segments.length, 'a vessel', 'vessels')}`;
     }
     case 'check-junction': return count > 1 ? `Judged ${count} junctions` : a.on ? 'Found a junction right' : 'Took back a junction verdict';
-    case 'set-width': return count > 1 ? `Set ${count} widths` : a.width ? (a.width.how === 'cannot' ? 'Said a width cannot be told' : `Set a width: ${(+a.width.um).toFixed(2)} µm`) : 'Went back to the estimated width';
+    case 'set-width': return count > 1 ? `Set ${count} widths` : a.width ? (['cannot', 'unclear'].includes(a.width.how) ? 'Said can\'t tell of a width' : `Set a width: ${(+a.width.um).toFixed(2)} µm`) : 'Went back to the estimated width';
+    case 'unclear-junction': return count > 1 ? `Said ${count} junctions can't be told` : a.on ? 'Said a junction can\'t be told' : 'Took back can\'t tell on a junction';
+    case 'missed-checked': return count > 1 ? `Nothing else missing in ${count} areas` : `Nothing else missing in area ${a.area + 1}`;
+    case 'area-done': return count > 1 ? `${count} areas done` : `Area ${a.area + 1} done`;
     case 'widths-right': return count > 1 ? `Widths right in ${count} areas` : `Widths right in area ${a.area + 1}`;
     default: return a.type;
   }
@@ -224,7 +245,7 @@ export function where(a, m) {
   let ps = null, at = null;
   switch (a.type) {
     case 'move-node': case 'attach': { const n = point(a.node); ps = n ? [{ x: a.to.x, y: a.to.y, z: a.to.z }] : null; break; }
-    case 'remove-bend': case 'delete-node': case 'split-junction': case 'check-junction': { const n = point(a.node); ps = n && [n]; break; }
+    case 'remove-bend': case 'delete-node': case 'split-junction': case 'check-junction': case 'unclear-junction': { const n = point(a.node); ps = n && [n]; break; }
     case 'split': case 'cut': case 'review': ps = segmentPoints([a.segment]); break;
     case 'delete-segment': case 'decide': case 'set-width': ps = segmentPoints(a.segments); break;
     case 'connect': case 'draw': {
@@ -232,7 +253,7 @@ export function where(a, m) {
       if (ps.some((p) => !p)) ps = null;
       break;
     }
-    case 'widths-right': at = [a.box.x0 / px, a.box.y0 / px, a.box.x1 / px, a.box.y1 / px, (a.slices[0] + a.slices[1]) / 2]; break;
+    case 'widths-right': case 'missed-checked': case 'area-done': at = [a.box.x0 / px, a.box.y0 / px, a.box.x1 / px, a.box.y1 / px, (a.slices[0] + a.slices[1]) / 2]; break;
     default: return null;
   }
   if (at) return at;

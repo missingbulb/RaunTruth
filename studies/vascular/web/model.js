@@ -174,10 +174,11 @@ export const WIDTHS = ['r', 'r_a', 'r_b', 'taper_known'];
 // ---------- a vessel's width, as a person said it ----------
 // One width per vessel (junction or tip to the next), never a taper: {um, how, walls, on}. how is "walls" (a drag from
 // one wall to the other, walls its two ends [x, y] in µm), "nudge" (the estimate stepped), "cannot" (it cannot be told)
-// or "looked" (its estimate looked at in an area found right, not measured); um, a diameter in µm, only on the first two.
+// "looked" (its estimate looked at in an area found right, not measured), "measured" (the width at half height across
+// it, agreed) or "unclear" (the person could not tell); um, a diameter in µm, on "walls", "nudge" and "measured".
 // A vessel nobody said anything of has none, and its width is the algorithm's estimate.
-export const WIDTH_HOWS = ['walls', 'nudge', 'cannot', 'looked'];
-const MEASURED = new Set(['walls', 'nudge']);
+export const WIDTH_HOWS = ['walls', 'nudge', 'cannot', 'looked', 'measured', 'unclear'];
+const MEASURED = new Set(['walls', 'nudge', 'measured']);
 export const measured = (w) => !!w && MEASURED.has(w.how);
 function readWidth(w, s) {
   const at = `(${s.a}–${s.b})`;
@@ -493,12 +494,20 @@ export const decided = (s) => !!s.proposed && (s.state === 'accepted' || s.state
 // A junction the owner found right is kept by its id in checked_junctions; one found to be vessels that only cross
 // is split instead (splitJunction).
 export const checkedJunction = (m, id) => (m.checked_junctions || []).includes(id);
-export function checkJunction(m, id, on = true) {
-  const now = new Set(m.checked_junctions || []);
-  if (now.has(id) === on) return m;
+// A junction nobody could tell is kept by its id in unclear_junctions; it and a verdict that it is right replace each other.
+const listed = (m, key, id) => (m[key] || []).includes(id);
+function mark(m, key, other, id, on) {
+  if (listed(m, key, id) === on && !(on && listed(m, other, id))) return m;
+  const now = new Set(m[key] || []), was = new Set(m[other] || []);
   on ? now.add(id) : now.delete(id);
-  return { ...clone(m), checked_junctions: [...now].sort((a, b) => a - b) };
+  if (on) was.delete(id);
+  const o = { ...clone(m), [key]: [...now].sort((a, b) => a - b) };
+  if (m[other]) o[other] = [...was].sort((a, b) => a - b);
+  return o;
 }
+export const checkJunction = (m, id, on = true) => mark(m, 'checked_junctions', 'unclear_junctions', id, on);
+export const unclearJunction = (m, id) => listed(m, 'unclear_junctions', id);
+export const markUnclear = (m, id, on = true) => mark(m, 'unclear_junctions', 'checked_junctions', id, on);
 
 // How many vessels (junction to junction, not segments between curve points) are in each state, and
 // how many of the live ones lie mostly in an area marked as damaged, counted there instead.

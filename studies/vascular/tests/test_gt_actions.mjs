@@ -341,6 +341,55 @@ Object.assign(tests, {
   },
 });
 
+// req/vascular/truth/tasks and req/vascular/truth/widths: the four steps' own answers
+Object.assign(tests, {
+  'a junction nobody can tell is kept apart from those found right, and taken back'() {
+    const m = start();
+    const got = S.run(m, act({ type: 'unclear-junction', node: 2, on: true }));
+    assert.deepEqual(got.unclear_junctions, [2]);
+    assert.ok(!Mo.checkedJunction(got, 2), 'can\'t tell is no verdict that it is right');
+    assert.deepEqual(S.document(got).unclear_junctions, [2], 'the file keeps it');
+    assert.deepEqual(S.load(JSON.parse(JSON.stringify(S.document(got)))).unclear_junctions, [2]);
+    const back = S.run(got, act({ type: 'unclear-junction', node: 2, on: false }));
+    assert.deepEqual(back.unclear_junctions ?? [], []);
+    assert.deepEqual(S.run(m, act({ type: 'unclear-junction', node: 99, on: true })), { skip: 'its point is gone' });
+    // a verdict after it replaces it, and it replaces a verdict
+    const right = S.run(got, act({ type: 'check-junction', node: 2, on: true }));
+    assert.ok(Mo.checkedJunction(right, 2) && !(right.unclear_junctions ?? []).includes(2));
+    const unsure = S.run(right, act({ type: 'unclear-junction', node: 2, on: true }));
+    assert.ok(!Mo.checkedJunction(unsure, 2) && unsure.unclear_junctions.includes(2));
+  },
+  'Nothing else missing keeps the area\'s missed box with the slices seen and the seconds spent'() {
+    const m = start(), box = { x0: 0, y0: 0, x1: 50, y1: 50 };
+    const got = S.run(m, act({ type: 'missed-checked', area: 0, box, slices: [0, 3], seen: 4, seconds: 95 }));
+    assert.deepEqual(got.reviewed_regions.at(-1), { x: [0, 50], y: [0, 50], z: [0, 3], on: '2026-11-17', step: 'missed', area: 0, slices_seen: 4, seconds: 95 });
+    assert.deepEqual(S.where(act({ type: 'missed-checked', area: 0, box, slices: [0, 3], seen: 4, seconds: 95 }), m), [0, 0, 50, 50, 1.5]);
+    assert.ok(/missing/i.test(S.describe(act({ type: 'missed-checked', area: 0 }), 1)));
+  },
+  'Area done keeps the area, accepts its confident vessels and declines its faint ones not kept, and says no width'() {
+    const m = start(), box = { x0: 50, y0: 50, x1: 100, y1: 100 };
+    const got = S.run(m, act({ type: 'area-done', area: 2, box, slices: [0, 3] }));
+    assert.deepEqual(got.reviewed_regions.at(-1), { x: [50, 100], y: [50, 100], z: [0, 3], on: '2026-11-17', step: 'area', area: 2 });
+    assert.equal(got.segments.find((x) => x.id === 's5').state, 'rejected');
+    const top = S.run(m, act({ type: 'area-done', area: 0, box: { x0: 0, y0: 0, x1: 50, y1: 50 }, slices: [0, 3] }));
+    assert.equal(top.segments.find((x) => x.id === 's3').state, 'accepted');
+    assert.ok(top.segments.every((x) => !x.width), 'a width nobody said stays unsaid');
+    assert.equal(S.describe(act({ type: 'area-done', area: 2 }), 1), 'Area 3 done');
+  },
+  'a width is measured, stepped from it, or unclear, and the file reads each back'() {
+    const m = start();
+    for (const width of [{ um: 3.4, how: 'measured' }, { um: 3.65, how: 'nudge' }, { how: 'unclear' }]) {
+      const got = S.run(m, act({ type: 'set-width', segments: ['s3'], width }));
+      const i = got.segments.findIndex((x) => x.id === 's3');
+      assert.deepEqual(Mo.widthOf(got, [i]), { ...width, on: '2026-11-17' });
+      const back = S.load(JSON.parse(JSON.stringify(S.document(got))));
+      assert.deepEqual(Mo.widthOf(back, [back.segments.findIndex((x) => x.id === 's3')]), { ...width, on: '2026-11-17' });
+    }
+    assert.ok(Mo.measured({ um: 3.4, how: 'measured' }) && !Mo.measured({ how: 'unclear' }));
+    assert.match(S.describe(act({ type: 'set-width', segments: ['s3'], width: { how: 'unclear' } }), 1), /can.t tell/i);
+  },
+});
+
 let n = 0;
 for (const [name, fn] of Object.entries(tests)) { fn(); n++; console.log('ok', name); }
-assert.equal(n, 25);
+assert.equal(n, 29);
