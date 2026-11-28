@@ -110,7 +110,10 @@ function samples(i) {
   if (!c) sampled.set(model, (c = []));
   return (c[i] ??= Mo.sampleSegment(model, i, SAMPLES));
 }
-const inSlab = (n) => n.z >= V.S.z0 - .5 && n.z <= V.S.z1 + .5 && V.inClip(toWorld(n));
+// allDepths: the model drawn through every slice while the stack shows fewer, as the look for what was missed asks
+let allDepths = false;
+const inSlab = (n) => (allDepths || (n.z >= V.S.z0 - .5 && n.z <= V.S.z1 + .5)) && V.inClip(toWorld(n));
+export function everyDepth(on) { if (allDepths !== !!on) { allDepths = !!on; V?.redraw(); } }
 // declined candidates are never drawn; the rest are, unless the owner has hidden the low-confidence ones
 const visible = (s) => Mo.live(s);
 const shown = (s) => visible(s) && (inSlab(model.nodes.get(s.a)) || inSlab(model.nodes.get(s.b)));

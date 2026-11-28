@@ -1,6 +1,7 @@
 // Drives the vascular study's page in a GT stage (web/) in headless Chromium against a stand-in worker
-// (stand_in.mjs) whose Execute answers with a model fixture, over a drawn stack. Checks req/vascular/truth/keys: F and J
-// judge the area's junction as Junction and They cross do, Space does the area once Area is right is on, S skips it;
+// (stand_in.mjs) whose Execute answers with a model fixture, over a drawn stack. Checks req/vascular/truth/keys: F keeps
+// each doubt, F and J judge the area's junction as Junction and They cross do, . steps the slices until Space does the
+// Missed step, F agrees each width and Space does the area, S skips it;
 // no key acts out of tagging, typing in a field, with a menu open, held down, or when its button is off, and a key that
 // did not act is left to the page; each button shows its key. The image's keys legend (req/shell/image/keys) lists exactly the keys that act,
 // each filled blue while held; the number keys switch the views (req/vascular/model/view): 1 held shows the model
@@ -155,15 +156,18 @@ try {
   await device.close();
   await begin("Develop");
   await page.waitForFunction(() => window.vascular.tasks().key);
-  // annotating, a junction to judge: its verdicts, Skip, the widths look, the views and Panning; Area is right still off
+  // the area's doubts first: F keeps each faint line, until its junctions come
+  for (let k = 0; k < 50 && (await tasks()).step === "doubts"; k++) await press("KeyF");
+  check((await tasks()).step === "junctions", `F keeps each doubt, then the junctions come: ${(await tasks()).step}`);
+  // annotating, a junction to judge: its verdicts, Skip, Back, the views and Panning
   keys = await legendKeys(page);
   check(keys === "1 2 3 4 shift", `tagging a junction, the keys legend lists only the views and Panning, F, J, S and W on their buttons or none: ${keys}`);
   const labels = Object.fromEntries((await legend(page)).map((r) => [r.key, r.label]));
   check(labels["1"] === "Model" && labels["2"] === "No markings" && labels["3"] === "Side by side", `each row says what its key does: ${JSON.stringify(labels)}`);
   await frames(page);
   const hints = await page.evaluate(() => ({ yes: $("#task-card .verdict .yes kbd")?.textContent, no: $("#task-card .verdict .no kbd")?.textContent,
-    ok: $("#area-ok kbd")?.textContent, skip: $("#task-skip kbd")?.textContent }));
-  check(same(hints, { yes: "F", no: "J", ok: "Space", skip: "S" }), `each button shows its key: ${JSON.stringify(hints)}`);
+    unclear: $("#task-card .verdict .unclear kbd")?.textContent, skip: $("#task-skip kbd")?.textContent, back: $("#task-back kbd")?.textContent }));
+  check(same(hints, { yes: "F", no: "J", unclear: "Q", skip: "S", back: "B" }), `each button shows its key: ${JSON.stringify(hints)}`);
 
   // 1 held: the model alone, its row filled, as Ctrl did; let go, the lines over the stack; Ctrl does nothing now
   await page.keyboard.down("1");
@@ -206,29 +210,31 @@ try {
   check(!(await press("KeyF")) && same(await state(), s0), "F with a menu open does nothing");
   await page.evaluate(() => { $("#task-menu").open = false; });
 
-  // Space while Area is right is off, Backspace with no Back, a key of no task: nothing, left to the page
-  check(await page.evaluate(() => $("#area-ok").disabled), "a junction is still to judge, so Area is right is off");
-  check(!(await press("Space")) && same(await state(), s0), "Space does nothing while Area is right is off, and is left to the page");
-  check(!(await press("Backspace")) && same(await state(), s0), "Backspace does nothing: these tasks have no Back");
-  check(!(await press("KeyQ")) && same(await state(), s0), "a key of no task is left to the page");
+  // Space with no button of its step shown, Backspace with no width to reset, a key of no task: nothing, left to the page
+  check(await page.evaluate(() => $("#area-ok").hidden), "the junctions step has no button of its own");
+  check(!(await press("Space")) && same(await state(), s0), "Space does nothing then, and is left to the page");
+  check(!(await press("Backspace")) && same(await state(), s0), "Backspace does nothing with no width asked");
+  check(!(await press("KeyZ")) && same(await state(), s0), "a key of no task is left to the page");
 
-  // every junction of this area judged with F, Space does it
-  // a key held fills its row blue, let go it is grey again
-  for (let k = 0; k < 200 && (await tasks()).key; k++) await press("KeyF");
-  check(!(await page.evaluate(() => $("#area-ok").disabled)), "every junction judged by F, Area is right is on");
-  keys = await legendKeys(page);
-  check(keys === "1 2 3 4 shift", `no junction left, the legend still lists only the views and Panning: ${keys}`);
+  // every junction of this area judged with F, then the look for what was missed: Space only once every slice is seen
+  for (let k = 0; k < 200 && (await tasks()).step === "junctions"; k++) await press("KeyF");
+  check((await tasks()).step === "missed" && await page.evaluate(() => $("#area-ok").disabled), "every junction judged by F, the Missed step's button is off");
   s0 = await state();
-  // Space on a focused button presses that button, not Area is right
+  check(!(await press("Space")) && same(await state(), s0), "Space does nothing while Nothing else missing is off");
+  for (let k = 0; k < 40 && !(await page.evaluate(() => !$("#area-ok").disabled)); k++) await press("Period");
+  keys = await legendKeys(page);
+  check(keys === "1 2 3 4 shift", `the legend still lists only the views and Panning: ${keys}`);
+  // Space on a focused button presses that button, not the step's
   check(!(await press("Space", { on: "#task-skip" })) && same(await state(), s0), "Space on a focused button is that button's");
   const spaceKept = await press("Space");
-  s1 = await state();
-  check(spaceKept && s1.regions === s0.regions && s1.area === s0.area && (await tasks()).widths, `Space opens the area's widths step: ${JSON.stringify([s0, s1])}`);
-  keys = await legendKeys(page);
-  check(keys === "1 2 3 4 shift", `in the widths step the legend lists the same views and Panning: ${keys}`);
+  let s2 = await state();
+  check(spaceKept && s2.regions === s0.regions + 1 && s2.area === s0.area && (await tasks()).step === "vessels", `Space, Nothing else missing, opens the vessels: ${JSON.stringify([s0, s2])}`);
+  // each vessel agreed with F, then Space does the area
+  for (let k = 0; k < 200 && (await tasks()).key; k++) await press("KeyF");
+  s0 = await state();
   await press("Space");
   s1 = await state();
-  check(s1.regions === s0.regions + 1 && s1.area !== s0.area, `Space again, These widths look right, does the area and moves on: ${JSON.stringify([s0, s1])}`);
+  check(s1.regions === s0.regions + 1 && s1.area !== s0.area, `Space, Area done, does the area and moves on: ${JSON.stringify([s0, s1])}`);
 
   // S: Skip, the next area
   s0 = s1;

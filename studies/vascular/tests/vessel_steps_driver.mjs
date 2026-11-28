@@ -1,51 +1,58 @@
 // Drives the vascular study's page in a GT stage in headless Chromium against the stand-in worker (stand_in.mjs), on a
-// stack drawn here with vessels of known widths: req/vascular/truth/widths. An area's junctions done, Area is right opens
-// its widths step: the area in the stack's own pixels (finer than the 3D view's binned voxels), each vessel's width as
-// two rims and a number in µm, magenta while it is the estimate, amber once set; the number keys mean one thing at any
-// time: 2 the grey picture alone, 3 the widths beside the model, 4 the area in colour in 3D, the selection kept; resting on a vessel opens a lens; clicking a vessel selects it and a drag sets
-// nothing; − and + on the box or the keys step the selected vessel's width, Reset puts back the estimate; These widths
-// look right waits for a drawn vessel's width, marks the rest looked at and does the area; the export carries each
-// width and still names the estimates unchecked. Exits 1 on a failed check, 2 when it cannot run.
-//   node studies/vascular/tests/vessel_widths_driver.mjs STUDIES [SHOTS_DIR]
+// stack drawn here with vessels of known widths: req/vascular/truth/tasks, req/vascular/truth/widths and
+// req/vascular/truth/keys. The first area's four steps one after another, each answered by its keys: a faint vessel
+// rejected (J), a junction nobody can tell (Q), the slices stepped (, and .) until Nothing else missing turns on (Space),
+// then each vessel's width: agreed at half height (F), stepped and agreed (+, F), can't tell (Q), a drawn vessel
+// not a vessel (J), Back (B) to one answered before; Area done (Space) moves on, and the export carries every answer.
+// Exits 1 on a failed check, 2 when it cannot run.
+//   node studies/vascular/tests/vessel_steps_driver.mjs STUDIES [SHOTS_DIR]
 import { fromScratch } from "../../../web-tests/annotating.mjs";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
 
-import { serve, atStage, taggersDevice, legend, legendKeys } from "./stand_in.mjs";
+import { serve, atStage, taggersDevice } from "./stand_in.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
-import { frames as framesOf, viewDrawn } from "../../../web-tests/page_frames.mjs";
+import { frames as framesOf } from "../../../web-tests/page_frames.mjs";
 import { pw, launch, check } from "../../../web-tests/harness.mjs";
 import { world } from "../../../web-tests/world.mjs";
 import { image } from "../../../web-tests/images.mjs";
-import { orMissed } from "../../../web-tests/page_until.mjs";
 
-const here = path.dirname(fileURLToPath(import.meta.url)), repo = path.resolve(here, "..", "..", "..");
+const here = path.dirname(fileURLToPath(import.meta.url));
 const [studies, shots] = process.argv.slice(2);
 
-// The stack: 1300 pixels square at 0.55 µm, wider than the 3D view draws unbinned, six slices. Three straight vessels
-// across the first area of 4 × 4 (0 to 178.75 µm each way): at y = 40 µm 5 µm wide whose estimate says 3, at y = 90 µm
-// 4 µm wide whose estimate says 4, and at y = 140 µm one the person drew, with no width; and a patch of one-pixel
-// stripes, which only the stack's own pixels show.
+// The stack: 1300 pixels square at 0.55 µm, six slices; everything lies in the first area of 4 × 4 (0 to 178.75 µm
+// each way). Three straight vessels from x = 20 to 110 µm: at y = 40 µm 5 µm wide, whose estimate says 3, at y = 90 µm
+// 4 µm wide, at y = 140 µm 3 µm wide, one the person drew. From the first vessel's end at (110, 40) two branches 3 µm
+// wide run to (150, 15) and (150, 65), so its end is a junction of three; and a faint vessel from (40, 115) to
+// (100, 115), low-confidence.
 const UM = 0.55, SIDE = 1300, Z = 6, FOCUS = 2;
-const VESSELS = [{ y: 40, true: 5, r: 1.5 }, { y: 90, true: 4, r: 2 }, { y: 140, true: 3, r: null }];
-const X0 = 20, X1 = 150, STRIPES = { x0: 158, x1: 176, y0: 8, y1: 26 };
+const LINES = [
+  { a: [20, 40], b: [110, 40], w: 5, r: 1.5 }, { a: [20, 90], b: [110, 90], w: 4, r: 2 }, { a: [20, 140], b: [110, 140], w: 3, drawn: true },
+  { a: [110, 40], b: [150, 15], w: 3, r: 1.5 }, { a: [110, 40], b: [150, 65], w: 3, r: 1.5 }, { a: [40, 115], b: [100, 115], w: 3, r: 1.5, faint: true },
+];
+const distance = ([px, py], { a: [ax, ay], b: [bx, by] }) => {
+  const dx = bx - ax, dy = by - ay, t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)));
+  return Math.hypot(px - ax - t * dx, py - ay - t * dy);
+};
 const stack = (name) => image.tiff(name, { width: SIDE, height: SIDE, planes: Z, bps: 1, resolution: Array(2).fill([1e6, Math.round(UM * 1e6)]),
   description: `ImageJ=1.54f\nimages=${Z}\nslices=${Z}\nunit=micron\n`,
   value(z, x, y) {
-    const ux = (x + .5) * UM, uy = (y + .5) * UM;
-    if (ux >= STRIPES.x0 && ux <= STRIPES.x1 && uy >= STRIPES.y0 && uy <= STRIPES.y1 && x % 2 === 0) return 240;
-    if (ux >= X0 && ux <= X1 && VESSELS.some((v) => Math.abs(uy - v.y) <= v.true / 2)) return Math.abs(z - FOCUS) <= 1 ? 220 : 60;
-    return 12;
+    const p = [(x + .5) * UM, (y + .5) * UM];
+    const on = LINES.find((l) => distance(p, l) <= l.w / 2);
+    if (!on) return 12;
+    return Math.abs(z - FOCUS) <= 1 ? (on.faint ? 90 : 220) : 30;
   } });
-// the model the stand-in's Execute answers with: the three vessels as edges through a curve point each
+// the model the stand-in's Execute answers with: a point per end, the junction's shared
+const at = new Map(), node = (p) => { const k = p.join(); if (!at.has(k)) at.set(k, { id: at.size + 1, x: p[0], y: p[1], z: FOCUS }); return at.get(k).id; };
 const model = {
-  format: "vessel-model/2", status: "draft", source: "acme-widths.tif", slices: Z, size_px: [SIDE, SIDE], um_per_px: UM, z_step_um: 1,
-  nodes: VESSELS.flatMap((v, k) => [{ id: 2 * k + 1, x: X0, y: v.y, z: FOCUS, ...(v.r && { r: v.r }) }, { id: 2 * k + 2, x: X1, y: v.y, z: FOCUS, ...(v.r && { r: v.r }) }]),
-  edges: VESSELS.map((v, k) => ({ id: k + 1, a: 2 * k + 1, b: 2 * k + 2, state: "vessel", ...(v.r ? { proposed: "vessel", confidence: .9, r_a: v.r, r_b: v.r, taper_known: false } : { drawn: true }),
-    via: [{ x: (X0 + X1) / 2, y: v.y, z: FOCUS, ...(v.r && { r: v.r }) }] })),
+  format: "vessel-model/2", status: "draft", source: "acme-steps.tif", slices: Z, size_px: [SIDE, SIDE], um_per_px: UM, z_step_um: 1,
+  edges: LINES.map((l, k) => ({ id: k + 1, a: node(l.a), b: node(l.b), via: [],
+    ...(l.drawn ? { state: "vessel", drawn: true } : { state: l.faint ? "candidate" : "vessel", proposed: l.faint ? "candidate" : "vessel", confidence: l.faint ? .3 : .9, r_a: l.r, r_b: l.r, taper_known: false }) })),
   reviewed_regions: [],
 };
+model.nodes = [...at.values()].map((n) => ({ ...n, r: 1.5 }));
+const JUNCTION = node([110, 40]);
 const site = await serve(studies, model);
 
 const browser = await launch(pw), w = world(browser, site.origin);
@@ -55,20 +62,16 @@ const device = taggersDevice(w).with({ deviceScaleFactor: 1, acceptDownloads: tr
 await standInDrive(await device.context());
 let page;
 
-const look = () => page.evaluate(() => window.vascular.model().widths);
+const tasks = () => page.evaluate(() => window.vascular.tasks());
 const doc = () => page.evaluate(() => window.vascular.model().model);
 const frames = () => framesOf(page);
-// the model canvas's pixel at a place on it, [r, g, b]
-const pixel = (x, y) => page.evaluate(([x, y]) => { const c = document.querySelector("#mcv"), k = c.width / c.clientWidth;
-  return [...testCopy(c).getImageData(Math.floor(x * k), Math.floor(y * k), 1, 1).data].slice(0, 3); }, [x, y]);
-const MAGENTA = ([r, g, b]) => r > 180 && b > 150 && g < 140, AMBER = ([r, g, b]) => r > 180 && g > 110 && b < 90;
-const near = (rgb, want) => rgb && want(rgb);
-// a vessel of the look by its line's y in µm
-const vesselAt = (w, y) => w.vessels.find((v) => Math.abs(v.mid.y - y) < 1);
-const edgeAt = (d, y) => d.edges.find((e) => Math.abs(e.via[0].y - y) < 1);
-let box = null, cx = 0, cy = 0;
-// µm in the look to the page's pixels
-const screen = (x, y, w) => [cx + w.rect[0] + (x - w.box.x0) / (w.box.x1 - w.box.x0) * (w.rect[2] - w.rect[0]), cy + w.rect[1] + (y - w.box.y0) / (w.box.y1 - w.box.y0) * (w.rect[3] - w.rect[1])];
+const button = () => page.evaluate(() => ({ text: $("#area-ok").firstChild.textContent.trim(), off: $("#area-ok").disabled, shown: !$("#area-ok").hidden }));
+const edgeOf = (d, a, b) => d.edges.find((e) => (Math.hypot(d.nodes.find((n) => n.id === e.a).x - a[0], d.nodes.find((n) => n.id === e.a).y - a[1]) < 1
+  && Math.hypot(d.nodes.find((n) => n.id === e.b).x - b[0], d.nodes.find((n) => n.id === e.b).y - b[1]) < 1)
+  || (Math.hypot(d.nodes.find((n) => n.id === e.b).x - a[0], d.nodes.find((n) => n.id === e.b).y - a[1]) < 1
+  && Math.hypot(d.nodes.find((n) => n.id === e.a).x - b[0], d.nodes.find((n) => n.id === e.a).y - b[1]) < 1));
+const shot = async (name) => { if (shots) { await frames(); await page.screenshot({ path: path.join(shots, name) }); } };
+const press = async (k) => { await page.keyboard.press(k); await frames(); };
 
 try {
   page = await device.opens("vascular");
@@ -77,158 +80,110 @@ try {
   await page.waitForFunction(() => !$("#vm-run").disabled);
   await fromScratch(page, "#vm-run");
   await page.evaluate(() => { $("#notice").hidden = true; });
-  await page.waitForFunction(() => !$("#vm-review").hidden);
   await page.waitForFunction(() => window.vascular.tasks().focused);
-  [cx, cy] = await page.evaluate(() => { const r = $("#mcv").getBoundingClientRect(); return [r.left, r.top]; });
-  check(await look() == null, "an area opens with the lines over the stack, not its widths");
-  // req/vascular/truth/keys: an area with no junction: no F, J or Space in the legend
-  let keys = await legendKeys(page);
-  check(keys === "1 2 3 4 shift", `in an area without junctions the keys legend lists the views and Panning: ${keys}`);
-  const lit = async () => (await legend(page)).filter((r) => r.lit).map((r) => r.key).join(" ");
-  // the 3D | 2D row: the half shown, and whether its key is held
-  const twoD = () => page.evaluate(() => { const b = $("#key-swap"); return `${b.getAttribute("aria-pressed") === "true" ? "2D" : "3D"}${b.classList.contains("held") ? " held" : ""}`; });
-  check(await lit() === "", `the area's own view, the lines over the stack, has no row of its own: ${await lit()}`);
-  // 4 held in the junctions step: the area's widths, grey from straight above; let go, the lines over the stack again
-  await page.keyboard.down("4"); await frames();
-  const peekW = await look(), peekLit = await twoD();
-  await page.keyboard.up("4"); await frames();
-  check(!!peekW && peekW.vessels.length === 3 && peekLit === "2D held" && await look() == null && (await page.evaluate(() => window.vascular.model().view)) === "overlay",
-    `4 held shows the area's widths, its row lit; let go, the area's own view again: ${peekLit}`);
-  // W is no key any more
-  await page.keyboard.press("w"); await frames();
-  check(await look() == null, "W does nothing");
+  // a click on the image where nothing is, so no button keeps the focus: Space presses a focused one (req/vascular/truth/keys)
+  const [vx, vy] = await page.evaluate(() => { const r = $("#mcv").getBoundingClientRect(); return [r.left + 6, r.top + 6]; });
+  await page.mouse.click(vx, vy);
+  await frames();
 
-  // Area is right: the area's widths step, the area from above in the stack's own pixels, flattened, grey
-  const okText = () => page.evaluate(() => $("#area-ok").firstChild.textContent.trim());
-  check(await okText() === "Area is right", `the junctions done, the area's button is Area is right: ${await okText()}`);
-  await page.click("#area-ok"); await frames();
-  let w = await look();
-  check(!!w && w.vessels.length === 3 && w.image && (await page.evaluate(() => window.vascular.model().view)) === "widths", `Area is right opens the area's widths, its three vessels: ${JSON.stringify(w && w.vessels.map((v) => v.label))}`);
-  check(await okText() === "These widths look right" && (await page.evaluate(() => window.vascular.tasks().area)) === 0,
-    `... in the same area, its button now These widths look right: ${await okText()}`);
-  keys = await legendKeys(page);
-  check(keys === "1 2 3 4 shift" && await lit() === "", `in the widths step the legend lists the same keys, the step's own view no row's: ${keys}, lit ${await lit()}`);
-  const binned = await page.evaluate(() => window.shellForTests.viewer.three.meta.um_per_px);
-  {
-    // across the stripes, one pixel bright and the next dark: the step shows what the binned 3D view cannot
-    const ys = (STRIPES.y0 + STRIPES.y1) / 2, xs = [];
-    for (let k = 0; k < 8; k++) { const ux = (Math.ceil(STRIPES.x0 / UM) + 1 + k + .5) * UM; xs.push((await pixel(...screen(ux, ys, w).map((v, i) => v - (i ? cy : cx))))[0]); }
-    const flips = xs.slice(1).filter((v, k) => (v > 128) !== (xs[k] > 128)).length;
-    check(binned > UM * 1.5 && flips >= 6, `the step is the stack's own ${UM} µm pixels, not the 3D view's ${binned.toFixed(2)} µm voxels: across the stripes ${xs}`);
-    const g = await pixel(...screen(55, 40, w).map((v, i) => v - (i ? cy : cx)));
-    check(g[0] === g[1] && g[1] === g[2] && g[0] > 128, `... grey, the vessel bright: ${g}`);
+  // 1. Doubts: the faint vessel, pictured; J rejects it and the step, its only item, is done
+  let t = await tasks();
+  check(t.area === 0 && t.step === "doubts" && t.items === 1 && !!t.key, `the area opens on its doubts, the one faint vessel: ${JSON.stringify(t)}`);
+  check(await page.evaluate(() => !!$("#task-card canvas") && /Keep/.test($("#task-card .verdict .yes").textContent) && /Reject/.test($("#task-card .verdict .no").textContent)),
+    "... pictured in the box, Keep and Reject under it");
+  check(await page.evaluate(() => /Doubts/.test($("#step-head").textContent)), "the box says which step it is");
+  await shot("step-doubts.png");
+  await press("j");
+  check(edgeOf(await doc(), [40, 115], [100, 115]).state === "rejected", "J rejects the faint vessel");
+
+  // 2. Junctions: the junction of three, grey and coloured by depth, each arm's depth written; Q says can't tell
+  t = await tasks();
+  check(t.step === "junctions" && t.key === `j${JUNCTION}`, `with no doubt left the junctions come: ${JSON.stringify(t)}`);
+  const card = await page.evaluate(() => ({ pictures: document.querySelectorAll("#task-card canvas").length, arms: document.querySelectorAll("#task-card .arm-z").length,
+    can: /Can.t tell/.test($("#task-card .verdict").textContent) }));
+  check(card.pictures === 2 && card.arms === 3 && card.can, `the junction is pictured twice, grey and by depth, its three arms' depths written, Can't tell offered: ${JSON.stringify(card)}`);
+  await shot("step-junctions.png");
+  await press("q");
+  let d = await doc();
+  check((d.unclear_junctions ?? []).includes(JUNCTION) && !(d.checked_junctions ?? []).includes(JUNCTION), "Q keeps the junction as one nobody can tell");
+
+  // 3. Missed: the slices stepped one at a time; Nothing else missing only once every slice has been seen
+  t = await tasks();
+  let b = await button();
+  check(t.step === "missed" && b.text === "Nothing else missing" && b.off && t.seen === 1 && t.slices === Z,
+    `then the look for what was missed, its button off with one slice of ${Z} seen: ${JSON.stringify({ t, b })}`);
+  const slab = () => page.evaluate(() => { const S = window.shellForTests.viewer.three.S; return [S.z0, S.z1]; });
+  check(JSON.stringify(await slab()) === "[0,0]", `... the view showing one slice: ${await slab()}`);
+  // the model's lines through every depth, dimmed, so what is traced shows beside what is not
+  // (the 4 µm vessel lies at slice 2: its middle, on the model's canvas, while slice 0 shows)
+  const lines = await page.evaluate((id) => {
+    const c = $("#mcv"), k = c.width / c.clientWidth, [x, y] = window.vascular.model().points[id] ?? [NaN, NaN];
+    const d = testCopy(c).getImageData(Math.floor(x * k) - 3, Math.floor(y * k) - 3, 7, 7).data;
+    let lit = 0; for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 40) lit++;
+    return { dim: c.classList.contains("dim"), lit };
+  }, node([20, 90]));
+  check(lines.dim && lines.lit > 0, `... the model's lines still drawn, dimmed, at a depth the slice shown is not: ${JSON.stringify(lines)}`);
+  await press("Space");
+  check((await tasks()).step === "missed", "Space does nothing while the button is off");
+  for (let k = 1; k < Z; k++) await press("Period");
+  t = await tasks(); b = await button();
+  check(t.seen === Z && !b.off && JSON.stringify(await slab()) === `[${Z - 1},${Z - 1}]`, `stepping through every slice turns the button on: ${JSON.stringify({ t, b })}`);
+  await press("Comma");
+  check(JSON.stringify(await slab()) === `[${Z - 2},${Z - 2}]`, "comma steps back a slice");
+  await shot("step-missed.png");
+  await press("Space");
+  d = await doc();
+  const missed = d.reviewed_regions.find((g) => g.step === "missed");
+  check(!!missed && missed.slices_seen === Z && missed.seconds >= 0 && missed.area === 0, `Nothing else missing keeps the area's missed box with what was seen: ${JSON.stringify(missed)}`);
+  check(JSON.stringify(await slab()) === `[0,${Z - 1}]`, `... and the view has every slice again: ${await slab()}`);
+
+  // 4. Vessels: each live vessel of the area, its width at half height beside the algorithm's
+  t = await tasks();
+  check(t.step === "vessels" && t.items === 5, `then the vessels, each of the five left: ${JSON.stringify(t)}`);
+  const seen = new Set();
+  const widthCard = () => page.evaluate(() => ({ key: window.vascular.tasks().key, measured: +($("#w-measured")?.dataset.um ?? NaN), estimate: $("#w-estimate")?.dataset.um ?? null,
+    profile: !!$("#task-card svg.profile"), strip: !!$("#task-card canvas.strip") }));
+  let wc = await widthCard();
+  check(wc.profile && wc.strip && Number.isFinite(wc.measured), `the vessel's card: straightened, its profile, its width at half height: ${JSON.stringify(wc)}`);
+  await shot("step-vessels.png");
+  // in the walk's order, each by its middle top to bottom: the upper branch F, the 5 µm vessel + and F, the lower branch
+  // Q, the 4 µm vessel J, the drawn one F
+  const answered = [];
+  for (const keys of [["f"], ["Equal", "f"], ["q"], ["j"], ["f"]]) {
+    wc = await widthCard();
+    check(!seen.has(wc.key), `each vessel is asked once: ${wc.key}`);
+    seen.add(wc.key); answered.push(wc);
+    for (const key of keys) await press(key);
   }
-  const est = vesselAt(w, 40), even = vesselAt(w, 90), drawn = vesselAt(w, 140);
-  check(est.kind === "estimate" && est.label === "3.0 µm" && even.label === "4.0 µm", `each vessel's one width in µm beside it, the estimate's: ${est.label}, ${even.label}`);
-  check(drawn.kind === "none" && drawn.label === "?", `a vessel the person drew, with no width, shows "?": ${drawn.kind} ${drawn.label}`);
-  {
-    const [a, b] = est.rims, rgb = await pixel(...a);
-    check(Math.abs(Math.abs(a[1] - b[1]) - 3 / (w.box.y1 - w.box.y0) * (w.rect[3] - w.rect[1])) < 1.5 && near(rgb, MAGENTA), `an unchecked estimate is two magenta rims its width apart: ${rgb}`);
-    check(est.span[0] > screen(X0 + 1.5, 40, w)[0] - cx && est.span[1] < screen(X1 - 1.5, 40, w)[0] - cx, `... stopping short of the vessel's ends: ${est.span.map((v) => v.toFixed(0))}`);
-  }
-  // These widths look right waits for the vessel the person drew
-  check(await page.evaluate(() => $("#area-ok").disabled) && /1 vessel you drew/.test(await page.evaluate(() => $("#widths-note").textContent)),
-    `These widths look right waits for the width of the vessel the person drew, its line saying so: ${await page.evaluate(() => $("#widths-note").textContent)}`);
+  d = await doc();
+  const upper = edgeOf(d, [110, 40], [150, 15]), wide = edgeOf(d, [20, 40], [110, 40]), lower = edgeOf(d, [110, 40], [150, 65]);
+  const four = edgeOf(d, [20, 90], [110, 90]), drawn = edgeOf(d, [20, 140], [110, 140]);
+  check(upper.width?.how === "measured" && Math.abs(upper.width.um - 3) <= .8, `F records the width at half height, near the true 3 µm: ${JSON.stringify(upper.width)}`);
+  check(wide.width?.how === "nudge" && Math.abs(wide.width.um - (answered[1].measured + .25)) < 1e-6 && Math.abs(answered[1].measured - 5) <= .8,
+    `+ then F records the half-height width, near the true 5 µm and not the estimate's 3, a step wider: ${JSON.stringify(wide.width)} from ${answered[1].measured}`);
+  check(lower.width?.how === "unclear" && !("um" in lower.width), `Q records can't tell, with no µm: ${JSON.stringify(lower.width)}`);
+  check(four.state === "rejected" && !four.width, `J declines the vessel: ${four.state}`);
+  check(drawn.width?.how === "measured", `a vessel the person drew is asked too: ${JSON.stringify(drawn.width)}`);
 
-  // 2 held: the grey picture alone
-  await page.keyboard.down("2"); await frames();
-  const bare = await look(), rgbBare = await pixel(...est.rims[0]), greyLit = await lit();
-  await page.keyboard.up("2"); await frames();
-  check(bare.image && bare.marks === false && !near(rgbBare, MAGENTA) && (await look()).marks, `holding 2 shows the grey picture alone, letting go the rims again: ${rgbBare}`);
-  check(greyLit === "2" && await lit() === "", `2 held fills its row of the legend blue, let go grey again: ${greyLit}`);
-  // 3 held: the grey picture with the widths beside the model
-  await page.keyboard.down("3"); await frames();
-  const side = await page.evaluate(() => { const g = $("#wcv")?.getBoundingClientRect(), m = $("#mcv").getBoundingClientRect(), st = window.shellForTests.viewer.three.stage.getBoundingClientRect();
-    return { view: window.vascular.model().view, widths: !!window.vascular.model().widths, g: g && g.width > 0 && Math.abs(g.left - st.left) < 2 && g.right <= m.left + 2, m: m.left > st.left + st.width / 3 }; });
-  if (shots) { fs.mkdirSync(shots, { recursive: true }); await page.screenshot({ path: path.join(shots, "side.png") }); }
-  await page.keyboard.up("3"); await frames();
-  check(side.view === "wside" && side.widths && side.g && side.m && !(await page.evaluate(() => $("#wcv")?.isConnected)) && !!(await look()),
-    `holding 3 shows the grey picture with the widths in the left half beside the model, letting go the step's view again: ${JSON.stringify(side)}`);
+  // Back: B returns to the vessel answered before
+  t = await tasks(); b = await button();
+  check(t.step === "vessels" && b.text === "Area done" && !b.off, `every vessel answered, Area done is on: ${JSON.stringify({ t, b })}`);
+  await press("b");
+  t = await tasks();
+  check(t.key === answered[4].key, `B goes back to the vessel answered last: ${t.key} vs ${answered[4].key}`);
+  await press("f");
+  check((await button()).text === "Area done", "the same answer again moves on");
 
-  // resting on a vessel opens the lens beside it, about three slices at its depth, the brightness across it
-  const [ex, ey] = screen(70, 40, w);
-  await page.mouse.move(ex, ey);
-  await orMissed(page.waitForFunction(() => !!window.vascular.model().widths.lens));
-  w = await look();
-  check(!!w.lens && w.lens.vessel === est.n && w.lens.slices.join() === `${FOCUS - 1},${FOCUS + 1}` && w.lens.profile >= 20 && w.lens.half > 0,
-    `resting on a vessel opens its lens, slices ${FOCUS}±1, the brightness across it with half its height: ${JSON.stringify(w.lens)}`);
-  if (shots) { fs.mkdirSync(shots, { recursive: true }); await page.screenshot({ path: path.join(shots, "built-lens.png") }); }
+  // Area done: the area kept and the walk moves to the next one
+  await press("Space");
+  d = await doc(); t = await tasks();
+  check(d.reviewed_regions.some((g) => g.step === "area" && g.area === 0) && t.area === 1, `Space does the area and opens the next: ${JSON.stringify({ area: t.area })}`);
 
-  // nothing selected: the box asks for a vessel, with no − or +
-  const card = () => page.evaluate(() => ({ text: $("#w-card")?.innerText.replace(/\s+/g, " ").trim() ?? null,
-    buttons: ["#w-narrower", "#w-wider", "#w-reset"].map((s) => !!$(s)?.checkVisibility()), keys: ["#w-narrower", "#w-wider", "#w-reset"].map((s) => $(s)?.querySelector("kbd")?.textContent ?? null) }));
-  let c = await card();
-  check(w.selected == null && /click a vessel/i.test(c.text || "") && c.buttons.every((x) => !x), `nothing selected, the box asks for a click on a vessel: ${JSON.stringify(c)}`);
-  await page.keyboard.press("+");
-  check(!edgeAt(await doc(), 40).width, "+ with nothing selected sets nothing, the pointer's vessel neither");
-
-  // a drag across a vessel sets nothing: it selects it
-  const [ax, ay] = screen(85, 40 - 2.5, w), [bx, by] = screen(86, 40 + 2.5, w);
-  await page.mouse.move(ax, ay); await page.mouse.down(); await page.mouse.move(bx, by, { steps: 6 }); await page.mouse.up();
-  let e = edgeAt(await doc(), 40);
-  w = await look(); c = await card();
-  check(!e.width && w.selected === est.n, `a drag across a vessel sets no width, and selects it: ${JSON.stringify(e.width)} selected ${w.selected}`);
-  check(/3\.0 µm/.test(c.text) && c.buttons.every(Boolean) && c.keys.join() === "−,+,⌫", `... the box shows its width with −, + and Reset, each carrying its key: ${JSON.stringify(c)}`);
-  check(JSON.stringify((await page.evaluate(() => window.shellForTests.viewer.three.S.rot))) === JSON.stringify(await page.evaluate(() => window.shellForTests.viewer.three.facing(0, 0))), "... and the view never turns");
-
-  // + steps the selected vessel, whatever is under the pointer; − on the box steps it back
-  await page.mouse.move(...screen(60, 90, w)); await frames();
-  await page.keyboard.press("+");
-  e = edgeAt(await doc(), 40);
-  check(e.width?.how === "nudge" && Math.abs(e.width.um - 3.25) < 1e-9 && !edgeAt(await doc(), 90).width && e.r_a === 1.5,
-    `+ makes the selected vessel 0.25 µm wider than its estimate, not the one under the pointer, the estimate untouched: ${JSON.stringify(e.width)}`);
-  w = await look();
-  await viewDrawn(page);
-  check(vesselAt(w, 40).kind === "set" && near(await pixel(...vesselAt(w, 40).rims[0]), AMBER) && /3\.3 µm|3\.25 µm/.test((await card()).text), `... drawn amber, the box saying so: ${(await card()).text}`);
-  await page.click("#w-narrower"); await page.click("#w-narrower");
-  e = edgeAt(await doc(), 40);
-  check(Math.abs(e.width.um - 2.75) < 1e-9, `− on the box steps it narrower: ${JSON.stringify(e.width)}`);
-  // Reset (⌫) puts back the estimate
-  await page.keyboard.press("Backspace");
-  check(!("width" in edgeAt(await doc(), 40)) && vesselAt(await look(), 40).kind === "estimate", "Reset puts back the estimate");
-
-  // a click on another vessel selects it
-  await page.mouse.click(...screen(60, 90, w));
-  check((await look()).selected === even.n, `a click on another vessel selects it: ${(await look()).selected}`);
-  await page.keyboard.press("-");
-  check(Math.abs(edgeAt(await doc(), 90).width.um - 3.75) < 1e-9, "− steps it");
-
-  // 4 held: the area in colour in 3D, the selection kept; V is no key
-  await page.keyboard.press("v"); await frames();
-  check((await page.evaluate(() => window.vascular.model().view)) === "widths", "V does nothing");
-  await page.keyboard.down("4"); await frames();
-  const in3d = await page.evaluate(() => window.vascular.model()), held3d = await page.evaluate(() => window.shellForTests.viewer.three.S.held), lit3d = await twoD();
-  await page.keyboard.up("4"); await frames();
-  const back = await look();
-  check(in3d.view === "overlay" && in3d.widths == null && in3d.selected === even.n && !held3d && lit3d === "3D held",
-    `holding 4 shows the area in colour in 3D, free to turn, the selection kept: ${JSON.stringify({ view: in3d.view, sel: in3d.selected, held3d, lit3d })}`);
-  check(!!back && back.selected === even.n && JSON.stringify(await page.evaluate(() => window.shellForTests.viewer.three.S.rot)) === JSON.stringify(await page.evaluate(() => window.shellForTests.viewer.three.facing(0, 0))),
-    "letting 4 go gives the flat view from straight above back, the selection kept");
-
-  // the drawn vessel starts from the median of the others' widths: 3.0 (estimate) and 3.75 (set)
-  await page.mouse.click(...screen(100, 140, w));
-  await page.keyboard.press("+");
-  e = edgeAt(await doc(), 140);
-  check(e.width?.how === "nudge" && Math.abs(e.width.um - 3.625) < 1e-9, `+ on a drawn vessel starts from the median of the area's other widths: ${JSON.stringify(e.width)}`);
-  // U is no key any more
-  await page.keyboard.press("u");
-  check(edgeAt(await doc(), 140).width.how === "nudge", "U does nothing");
-  check(!(await page.evaluate(() => $("#area-ok").disabled)), "... and These widths look right is on");
-  if (shots) { await page.mouse.move(cx + 5, cy + 5); await frames(); await page.screenshot({ path: path.join(shots, "built-widths.png") }); }
-
-  // These widths look right: every width there the person did not set is looked at, and the area done
-  await page.keyboard.press("Space"); await frames();
-  const d = await doc();
-  check(edgeAt(d, 40).width?.how === "looked" && !("um" in edgeAt(d, 40).width) && edgeAt(d, 90).width.how === "nudge" && edgeAt(d, 140).width.how === "nudge",
-    `These widths look right marks the widths nobody set looked at, and keeps the ones set: ${[40, 90, 140].map((y) => JSON.stringify(edgeAt(d, y).width))}`);
-  check(d.reviewed_regions?.length === 1 && (await page.evaluate(() => window.vascular.tasks().area)) === 1 && await look() == null && await okText() === "Area is right",
-    "... does the area and moves on to the next, its junctions first");
-
-  // the export carries each width, and still names the algorithm's unchecked
+  // the export carries every answer, and still names the algorithm's widths unchecked
   const [dl] = await Promise.all([page.waitForEvent("download"), page.click("#analysis-dl")]);
   const out = JSON.parse(fs.readFileSync(await dl.path(), "utf8"));
-  check(edgeAt(out, 90).width.um === 3.75 && edgeAt(out, 40).width.how === "looked" && ["r", "r_a", "r_b", "taper_known"].every((k) => out.unchecked?.includes(k)),
-    `the export carries each width, the estimates still named unchecked: ${JSON.stringify(out.unchecked)}`);
+  check((out.unclear_junctions ?? []).includes(JUNCTION) && out.reviewed_regions.some((g) => g.step === "missed") && out.edges.some((e) => e.width?.how === "measured")
+    && ["r", "r_a", "r_b", "taper_known"].every((k) => out.unchecked?.includes(k)), "the export carries every answer, the estimates named unchecked");
   check(out.edges.every((x) => !x.width || !("um" in x.width) || x.width.um > 0), "no width is written as a zero");
 } catch (err) {
   failed = true; console.error(err);

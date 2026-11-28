@@ -55,9 +55,25 @@
 .task-card { display: flex; flex-direction: column; gap: 8px; }
 .task-card canvas { display: block; max-width: 100%; background: #000; border-radius: var(--r-chip); image-rendering: pixelated; }
 .task-card .verdict { display: flex; gap: 6px; }
-.task-card .verdict button { flex: 1; height: 44px; font-size: 14px; }
+.task-card .verdict button { flex: 1; min-height: 44px; font-size: 14px; }
 .task-card .verdict button.yes { border-color: var(--yes); color: var(--yes); }
 .task-card .verdict button.no { border-color: var(--no); color: var(--no); }
+.task-card .verdict.steps button { height: 32px; flex: 0 0 auto; min-width: 44px; }
+.step-head { margin: 0; font-weight: 600; font-size: 13px; }
+.task-card .pics { display: flex; gap: 6px; }
+.task-card .pic { position: relative; }
+.task-card .arm-z { position: absolute; transform: translate(-50%, -50%); font: 11px/1.3 "IBM Plex Mono", monospace; color: #fff; background: rgba(0, 0, 0, .7); padding: 0 3px; border-radius: 3px; pointer-events: none; white-space: nowrap; }
+.task-card .facts { margin: 0; font: 12px/1.4 "IBM Plex Mono", monospace; }
+.task-card .facts strong { color: var(--warn); font-weight: 600; }
+.task-card .w-now { margin: 0; font-weight: 600; }
+.task-card canvas.strip { image-rendering: auto; }
+.task-card svg.profile { display: block; background: #000; border-radius: var(--r-chip); }
+.task-card svg.profile .curve { fill: none; stroke: #e6e6e6; stroke-width: 1.5; }
+.task-card svg.profile .half { stroke: #8a9099; stroke-dasharray: 2 3; }
+.task-card svg.profile .edge { stroke: #3ddc84; stroke-width: 2; stroke-dasharray: 5 4; }
+.task-card svg.profile .tick { stroke: #8a9099; }
+.task-card svg.profile text { fill: #9aa0a8; font: 10px "IBM Plex Mono", monospace; }
+#mcv.dim { opacity: .4; }
 
 #ctx { position: fixed; top: 0; left: 0; z-index: 30; display: flex; flex-direction: column; padding: 4px 8px; background: var(--panel);
   border: 1px solid var(--line); border-radius: var(--r-ctl); box-shadow: 0 6px 18px #0006; }

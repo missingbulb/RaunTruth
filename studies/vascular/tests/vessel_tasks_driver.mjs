@@ -4,7 +4,7 @@
 // its model; req/vascular/truth/tasks and req/vascular/truth/order: how many areas chosen first, a row per area, the
 // areas' map floating over the view while tagging, the stack flattened under it, req/shell/ground-truth/tagging: annotating opens the walk once the model is drawn; an area opening from above, turning in 3D, its handles kept in depth from above, a
 // tip dropped on a vessel attached there, a right-click on the image drawing a missed vessel, its junctions judged one at
-// a time and picked on the view, Area is right, Ctrl or the Model label showing the model alone, Back to image and Back to task, a file of
+// a time and picked on the view, the Missed step and the widths, Area done, Ctrl or the Model label showing the model alone, Back to image and Back to task, a file of
 // the earlier three steps read; req/vascular/truth/marks: an area done blacked out of the stack while tagging, under the Show menu's Cut out what is done; req/vascular/model/ground-truth: Submit
 // last, its export carrying every verdict. Exits 1 on a failed check, 2 when it cannot run.
 //   node studies/vascular/tests/vessel_tasks_driver.mjs STUDIES
@@ -131,7 +131,7 @@ try {
   });
   check(under && under.n >= 100 && under.worst <= 2 && under.lit > 0 && Math.abs(under.aspect - under.want) < 0.05 && under.covers,
     `the map shows the stack under its areas, every slice flattened, in the image box's colours: ${JSON.stringify(under)}`);
-  check(await page.evaluate(() => !!$("#gt-tasks li.now #task-card canvas") && $("#task-card .verdict").children.length === 2), "the area's current junction is pictured in the box, its two verdicts under it");
+  check(await page.evaluate(() => !!$("#gt-tasks li.now #task-card canvas") && $("#task-card .verdict").children.length >= 2), "the area's current item is pictured in the box, its verdicts under it");
 
   // how many areas is the person's to choose
   await page.selectOption("#gt-areas", "2");
@@ -341,11 +341,13 @@ try {
   await page.click("#key-model");
   check(clicked === "model" && (await view()).mode === "overlay", `clicking the Model label shows the model alone, clicking it again the lines over the stack: ${clicked} → ${(await view()).mode}`);
 
-  // the area's junctions, one at a time
+  // the area's doubts first (req/vascular/truth/tasks), each rejected here, then its junctions, one at a time
+  check((await tasks()).step === "doubts", `the area opens on its doubts: ${(await tasks()).step}`);
+  await page.evaluate(() => { for (let k = 0; k < 200 && window.vascular.tasks().step === "doubts"; k++) document.querySelector("#task-card .verdict .no").click(); });
   t = await tasks();
   const js = t.junctions;
-  check(js.length > 2 && t.key === js.find((j) => !j.done).key, `the area's junctions come one at a time: ${js.length} here`);
-  check(await page.evaluate(() => $("#area-ok").disabled), "Area is right is off while a junction there has no verdict");
+  check(t.step === "junctions" && js.length > 2 && t.key === js.find((j) => !j.done).key, `the area's junctions come one at a time: ${js.length} here`);
+  check(await page.evaluate(() => $("#area-ok").hidden), "the junctions step has no button of its own");
   const j1 = Number(t.key.slice(1));
   await page.click("#task-card .verdict .yes");
   m = await doc(); t = await tasks();
@@ -366,18 +368,15 @@ try {
     } else check(false, "a second junction of the area on screen to click");
   }
 
-  // every junction judged, Area is right does the area
-  // the rest by the card's own button, clicked in the page one after another with no draw awaited between: the click
+  // every junction judged, then the Missed step and each vessel's width, and Area done does the area
+  // the rest by the cards' own buttons, clicked in the page one after another with no draw awaited between: the click
   // by hand is the one above
-  await page.evaluate(() => { for (let k = 0; k < 200 && window.vascular.tasks().key; k++) document.querySelector("#task-card .verdict .yes").click(); });
-  // Area is right opens the area's widths step (req/vascular/truth/widths), whose button waits for the vessels drawn
-  // there: given a width here
-  check(!(await page.evaluate(() => $("#area-ok").disabled)), "Area is right is on once every junction there has a verdict");
-  await page.click("#area-ok");
-  check((await tasks()).widths && (await tasks()).area === 0, "Area is right opens the area's widths step, in the same area");
-  check(await page.evaluate(() => $("#area-ok").disabled), "These widths look right waits while a vessel drawn there has no width");
-  await page.evaluate(() => { for (const e of window.vascular.model().model.edges) if (!e.proposed) window.vascular.act({ type: "set-width", segments: e.segment_ids, width: { um: 3, how: "nudge" } }); });
-  check(!(await page.evaluate(() => $("#area-ok").disabled)), "These widths look right is on once every vessel drawn there has a width");
+  await page.evaluate(() => { for (let k = 0; k < 200 && window.vascular.tasks().step === "junctions"; k++) document.querySelector("#task-card .verdict .yes").click(); });
+  check((await tasks()).step === "missed" && (await tasks()).area === 0, "every junction judged, the look for what was missed comes, in the same area");
+  await page.evaluate(() => { for (let k = 0; k < 100 && $("#area-ok").disabled; k++) $("#slice-next").click(); $("#area-ok").click(); });
+  check((await tasks()).step === "vessels", "every slice seen, Nothing else missing opens the vessels");
+  await page.evaluate(() => { for (let k = 0; k < 400 && window.vascular.tasks().key; k++) document.querySelector("#task-card .verdict .yes").click(); });
+  check(!(await page.evaluate(() => $("#area-ok").disabled || $("#area-ok").hidden)), "Area done is on once every vessel there has an answer");
   await page.click("#area-ok");
   m = await doc(); t = await tasks();
   const nodeAt = new Map(m.nodes.map((n) => [n.id, n]));
@@ -388,8 +387,8 @@ try {
   const inQuarter = (p) => p.x < W / 2 && p.y < H / 2;
   const there = m.edges.filter((e) => e.proposed && clear(e) && inQuarter(mid(e))), elsewhere = m.edges.filter((e) => e.proposed && clear(e) && !inQuarter(mid(e)));
   check(there.length > 0 && there.every((e) => e.state === (e.proposed === "vessel" ? "accepted" : "rejected")) && elsewhere.every((e) => e.state === e.proposed),
-    `Area is right accepts the area's vessels and declines its low-confidence ones, and nothing elsewhere: ${there.length} there`);
-  check(m.reviewed_regions?.length === 1 && m.reviewed_regions[0].step === "area" && t.area === 1, `... keeps the area done and moves to the next: ${JSON.stringify(m.reviewed_regions)} area ${t.area}`);
+    `Area done accepts the area's vessels and declines its low-confidence ones, and nothing elsewhere: ${there.length} there`);
+  check(m.reviewed_regions?.filter((g) => g.step === "area").length === 1 && t.area === 1, `... keeps the area done and moves to the next: ${JSON.stringify(m.reviewed_regions)} area ${t.area}`);
   const doneRows = () => page.evaluate(() => [...document.querySelectorAll("#gt-tasks > li.done")].map((li) => li.dataset.task));
   check((await doneRows()).join() === "a0", `the first area's row is done: ${await doneRows()}`);
   mm = await mini();
@@ -438,13 +437,14 @@ try {
   const [dl] = await Promise.all([page.waitForEvent("download"), page.click("#analysis-dl")]);
   const out = JSON.parse(fs.readFileSync(await dl.path(), "utf8"));
   check(out.status === "corrected" && out.edges.some((e) => e.state === "accepted" && e.proposed === "vessel") && out.edges.some((e) => e.state === "rejected")
-    && !!out.checked_junctions?.includes(j1) && out.reviewed_regions.map((g) => g.step).join() === "area", "the export carries every verdict: states, junctions found right, the area done");
-  // nothing in the tasks sets or confirms a width, so every width the export carries is named an unchecked estimate
+    && !!out.checked_junctions?.includes(j1) && out.reviewed_regions.map((g) => g.step).join() === "missed,area" && out.edges.some((e) => e.width?.how === "measured"),
+    "the export carries every verdict: states, junctions found right, widths agreed, the area's look for what was missed and the area done");
+  // the algorithm's widths stay beside the person's, each named an unchecked estimate
   const widths = [...new Set([...out.nodes, ...out.edges.flatMap((e) => [e, ...e.via])].flatMap((p) => ["r", "r_a", "r_b", "taper_known"].filter((k) => k in p)))];
   check(widths.length > 0 && widths.every((k) => out.unchecked?.includes(k)), `the export names its widths (${widths}) the algorithm's unchecked estimates: unchecked ${JSON.stringify(out.unchecked)}`);
 
   await page.keyboard.press("Control+z");
-  check(!(await doc()).reviewed_regions.length && !(await doneRows()).length, "Undo takes the area back");
+  check(!(await doc()).reviewed_regions.some((g) => g.step === "area") && !(await doneRows()).length, "Undo takes the area back");
 
   // a file from the three steps: an area whose lines, missed and junctions boxes all cover it is done
   await page.evaluate(() => { const m = window.vascular.model().model; window.vascular.base({ ...m, reviewed_regions: ["lines", "missed", "junctions"].map((step) => ({ x: [0, m.size_px[0] * m.um_per_px / 2], y: [0, m.size_px[1] * m.um_per_px / 2], z: [0, m.slices - 1], step })) }); });
@@ -459,7 +459,8 @@ try {
   await page.evaluate(() => { $("#status").textContent = ""; $("#vm-run").click(); });
   await page.waitForFunction(() => $("#status").textContent.trim() !== "" && $("#busy").hidden);
   const left = await page.textContent("#status");
-  check(/no item for 1 earlier decision or edit, which was left out/.test(left), `a run that cannot carry a checked junction over says so on the status line: ${left}`);
+  // (the junction among them: the area done holds more of the tagger's words than one)
+  check(/no item for \d+ earlier decisions? or edits?, which (was|were) left out/.test(left), `a run that cannot carry a checked junction over says so on the status line: ${left}`);
 } catch (e) {
   failed = true; console.error(e);
 }
