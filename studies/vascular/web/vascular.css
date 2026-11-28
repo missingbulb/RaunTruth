@@ -58,6 +58,7 @@
 .task-card .verdict button { flex: 1; min-height: 44px; font-size: 14px; }
 .task-card .verdict button.yes { border-color: var(--yes); color: var(--yes); }
 .task-card .verdict button.no { border-color: var(--no); color: var(--no); }
+.task-card .verdict button.no.neutral { border-color: var(--line); color: var(--text); }
 .task-card .verdict.steps button { height: 32px; flex: 0 0 auto; min-width: 44px; }
 .step-head { margin: 0; font-weight: 600; font-size: 13px; }
 .task-card .pics { display: flex; gap: 6px; }

@@ -13,8 +13,8 @@ let V = null;
 const $ = (id) => document.getElementById(id);
 const CARD_PX = 168;           // a card's picture, CSS pixels square
 const MIN_HALF_UM = 12;        // the least the picture shows around its item, each way
-// the model in magenta and the item in white: neither is a colour the depth scale gives the stack
-const MODEL = 'rgba(255,79,216,.75)', ITEM = '#fff';
+// the model in green and the item in white, as the overlay draws them
+const MODEL = 'rgba(0,255,0,.75)', ITEM = '#fff';
 // how much a low-confidence vessel is faded against a confident one
 const FADED = .4;
 const STATE_TEXT = { vessel: 'Vessel', candidate: 'Low confidence', accepted: 'Approved', rejected: 'Declined' };
@@ -118,7 +118,7 @@ export function vesselPicture(cv, m, v, px) {
 }
 
 // a pixel's brightness, [r, g, b] as the image box paints it, coloured by depth: hue from red at the first slice shown
-// through green to blue at the last, the colours the model's magenta and white never are
+// through green to blue at the last
 function depthColour(rgb, depth) {
   const v = Math.max(...rgb) / 255, h = depth * 240 / 60, x = 1 - Math.abs((h % 2) - 1);
   const [r, g, b] = h < 1 ? [1, x, 0] : h < 2 ? [x, 1, 0] : h < 3 ? [0, 1, x] : [0, x, 1];

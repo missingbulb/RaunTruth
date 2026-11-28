@@ -22,7 +22,7 @@ owner's decisions on the stacks and the vessel model, are
   <details>
 
   A card for each junction (three or more live branches) and each vessel (junction or tip to the
-  next): the stack around it flattened over the slices shown, the rest of the model thin in magenta
+  next): the stack around it flattened over the slices shown, the rest of the model thin in green
   and the item in white, with its numbers (a vessel's length along its curve, its width and depth
   span; a junction's depth, width and how many junctions lie within 20 µm). Filters show the ones
   worth a look and the declined vessels; sorting brings the shortest, widest, most branched or most
@@ -38,7 +38,8 @@ owner's decisions on the stacks and the vessel model, are
   Moved from the 3D MicroViewer (`studies/vascular/docs/3D-STACKS.md`, the owner's decisions of
   2026-10-03 to 10-29). The model Execute draws (`req/vascular/model/run`), or any `vessel-model/2`
   file loaded, shows as the toolbar says (`req/vascular/model/view`): white tubes in a view of its
-  own that turns with the stack's, or magenta over the stack. On the model: drag a point to move it, its handle shown
+  own that turns with the stack's, or green over the stack (owner, 2026-11-28, in place of magenta, which the
+  red end of the depth palettes swallowed: green is the hue furthest from all four palettes). On the model: drag a point to move it, its handle shown
   only while ground truth is tagged, never on the main view out of tagging (owner, 2026-11-08),
   right-click a segment or a point to delete it (one menu on every vessel, the same options in one order, what does not
   apply to what was clicked greyed with why, never hidden; owner, 2026-11-15), add or remove a bend (a point on any vessel, low-confidence ones
@@ -56,8 +57,9 @@ owner's decisions on the stacks and the vessel model, are
   browser under the study's own key are offered once as a draft (`req/shell/ground-truth/legacy`). A tip dropped where
   it cannot attach, on its own vessel's next point, has only moved, and its action says so. The ring Edit History draws
   round an action's item is green (`groundTruth.ring`), not the shell's yellow: the depth palettes pass through yellow
-  and the model's knots and set widths are amber, and green is the colour furthest from every palette and every colour
-  the model is drawn in. A run after stored ground truth (`req/shell/ground-truth/history-carry`) carries it onto the new
+  and the model's knots and set widths are amber, and green is the colour furthest from every palette and every mark
+  the model draws. Its lines are green too since 2026-11-28, the one hue the palettes leave free; the ring, a circle
+  shown while an action is pointed at, is told from them by its shape. A run after stored ground truth (`req/shell/ground-truth/history-carry`) carries it onto the new
   model: a verdict or a width goes to the segment between the same two points (points matched by place, then, for a point the
   tagger moved, within 3 µm), a moved point stays where it was put, the points and vessels the tagger drew or split stand
   as they were (replacing the run's vessel between the same two points), and so do the areas and junctions checked. A
@@ -162,9 +164,9 @@ owner's decisions on the stacks and the vessel model, are
   <details>
 
   Set by the owner on 2026-11-04. The toolbar chooses what the main view shows: Image (the stack
-  alone), Model (the model alone), Overlay (the model over the stack, in magenta) and Side by side
+  alone), Model (the model alone), Overlay (the model over the stack, in green) and Side by side
   (the stack and the model each in a half, turning together). While CD31 is coloured by depth
-  (`req/shell/viewer-3d`) the model is painted by depth in CD31's palette, as the stack is; over the stack the model stays magenta,
+  (`req/shell/viewer-3d`) the model is painted by depth in CD31's palette, as the stack is; over the stack the model stays green,
   a colour the depth scale never gives, so it never vanishes into the signal it marks. Vessel widths draws each
   vessel as wide as the model says. Changed by the owner on 2026-11-07, everything that sets how the model shows
   is at the toolbar's left (`req/shell/image/toolbar`): Vessel widths and Everything, Detected and Missed, with the reach
@@ -343,10 +345,12 @@ owner's decisions on the stacks and the vessel model, are
   1. **Doubts**: each low-confidence vessel whose middle lies in the area, pictured in the box: Keep or Reject.
   2. **Junctions**: each junction in the area, ringed on the view and pictured in the box twice, grey and coloured by
      the slice each pixel is brightest in, each arm's depth in µm written where it leaves the picture: a real
-     Junction, vessels that only cross at different depths (They cross, split then), or Can't tell, kept in the
+     Junction, vessels that only cross at different depths (They cross, split then, its button neutral since a crossing
+     is a finding, not a rejection; owner, 2026-11-28), or Can't tell, kept in the
      model's `unclear_junctions` and left out of the score. Clicking a junction on the view makes it the current one.
-  3. **Missed**: a look over the area for what the algorithm missed. The model's lines are dimmed, and the slices are
-     stepped one at a time with `,` and `.`, the box saying how many of the stack's slices have been seen. "Nothing
+  3. **Missed**: a look over the area for what the algorithm missed. The model's lines are dimmed and drawn through every
+     depth, and the slices are stepped one at a time with `,` and `.`, each stretched to its own low and high (owner,
+     2026-11-28), the box saying how many of the stack's slices have been seen. "Nothing
      else missing" turns on once every slice has been seen, and records the area's `missed` box with the slices seen
      and the seconds spent (owner, 2026-11-28, replacing "no button saying no vessel was missed" of 2026-11-07).
   4. **Vessels**: each vessel whose middle lies in the area, its width asked (`req/vascular/truth/widths`). Once every
@@ -392,5 +396,5 @@ owner's decisions on the stacks and the vessel model, are
   from it) or `unclear`, `um` on the first two; a vessel nobody said anything of has none, which never reads as
   agreement. A file from before keeps its `walls`, `cannot` and `looked` widths as they are. The algorithm's `r`, `r_a`,
   `r_b` and `taper_known` stay as it wrote them and are still named in `unchecked`. **Tentative**: the edge convention,
-  half height. Test: `studies/vascular/tests/test_vessel_steps_page.py`, `studies/vascular/tests/test_gt_actions.mjs`.
+  half height; the ground-truth files made so far hold no corrected width, so it changes none (owner, 2026-11-28). Test: `studies/vascular/tests/test_vessel_steps_page.py`, `studies/vascular/tests/test_gt_actions.mjs`.
   </details>

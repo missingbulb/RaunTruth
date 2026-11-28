@@ -104,6 +104,8 @@ try {
     can: /Can.t tell/.test($("#task-card .verdict").textContent) }));
   check(card.pictures === 2 && card.arms === 3 && card.can, `the junction is pictured twice, grey and by depth, its three arms' depths written, Can't tell offered: ${JSON.stringify(card)}`);
   await shot("step-junctions.png");
+  // the stack's own range, before the Missed step stretches it
+  const before = await page.evaluate(() => { const c = window.shellForTests.viewer.levels().find((x) => x.on); return [c.black, c.white]; });
   await press("q");
   let d = await doc();
   check((d.unclear_junctions ?? []).includes(JUNCTION) && !(d.checked_junctions ?? []).includes(JUNCTION), "Q keeps the junction as one nobody can tell");
@@ -115,6 +117,8 @@ try {
     `then the look for what was missed, its button off with one slice of ${Z} seen: ${JSON.stringify({ t, b })}`);
   const slab = () => page.evaluate(() => { const S = window.shellForTests.viewer.three.S; return [S.z0, S.z1]; });
   check(JSON.stringify(await slab()) === "[0,0]", `... the view showing one slice: ${await slab()}`);
+  // each slice stretched to its own range while it shows (slice 0 holds only dim vessel edges), and the range put back after
+  const levels = () => page.evaluate(() => { const c = window.shellForTests.viewer.levels().find((x) => x.on); return [c.black, c.white]; });
   // the model's lines through every depth, dimmed, so what is traced shows beside what is not
   // (the 4 µm vessel lies at slice 2: its middle, on the model's canvas, while slice 0 shows)
   const lines = await page.evaluate((id) => {
@@ -126,6 +130,8 @@ try {
   check(lines.dim && lines.lit > 0, `... the model's lines still drawn, dimmed, at a depth the slice shown is not: ${JSON.stringify(lines)}`);
   await press("Space");
   check((await tasks()).step === "missed", "Space does nothing while the button is off");
+  const dim = await levels();
+  check(dim[1] < before[1], `the first slice, dim, is shown in its own brighter range: ${dim} vs the stack's ${before}`);
   for (let k = 1; k < Z; k++) await press("Period");
   t = await tasks(); b = await button();
   check(t.seen === Z && !b.off && JSON.stringify(await slab()) === `[${Z - 1},${Z - 1}]`, `stepping through every slice turns the button on: ${JSON.stringify({ t, b })}`);
@@ -135,6 +141,7 @@ try {
   await press("Space");
   d = await doc();
   const missed = d.reviewed_regions.find((g) => g.step === "missed");
+  check(JSON.stringify(await levels()) === JSON.stringify(before), `... and the stack's own range is back once the step ends: ${await levels()} vs ${before}`);
   check(!!missed && missed.slices_seen === Z && missed.seconds >= 0 && missed.area === 0, `Nothing else missing keeps the area's missed box with what was seen: ${JSON.stringify(missed)}`);
   check(JSON.stringify(await slab()) === `[0,${Z - 1}]`, `... and the view has every slice again: ${await slab()}`);
 

@@ -21,7 +21,7 @@ const MIN_PX = 160;
 
 // tools: the open area's cogwheel and Skip, for its row; work: what is done in it, under its row
 // n: the areas across the field each way, the shell's Areas menu's (req/shell/ground-truth/areas)
-let V = null, keys = null, T = null, n = null, st = null, items = null, heard = () => {}, tools = null, work = null;
+let V = null, LEVELS = () => [], keys = null, T = null, n = null, st = null, items = null, heard = () => {}, tools = null, work = null;
 // step and key: the step and item asked, null for the first not answered; history: the items answered, for Back;
 // adjust: µm the person stepped the current width; seen, slice, since: the Missed step's slices seen, the one shown and
 // when the step opened; slab: the slices the view showed before it
@@ -155,17 +155,31 @@ const sliceCount = () => V.meta?.shape?.[0] ?? MV.current()?.slices ?? 1;
 const missedReady = () => !!st.seen && st.seen.size >= sliceCount();
 function showSlice(k) {
   const Z = sliceCount(); st.slice = Math.min(Math.max(k, 0), Z - 1); st.seen.add(st.slice);
-  V.S.z0 = V.S.z1 = st.slice; V.redraw(); show(false);
+  V.S.z0 = V.S.z1 = st.slice; stretch(st.slice); V.redraw(); show(false);
+}
+// the shown channel's black and white points set to slice k's own low and high (owner, 2026-11-28), so a dim slice's
+// faint vessels show; the stack's own points are kept to put back
+const LOW = .01, HIGH = .997;
+const shownChannel = () => LEVELS().find((c) => c.on) ?? null;
+function stretch(k) {
+  const c = shownChannel(), vol = V.volume?.(); if (!c || !vol || !V.meta) return;
+  const [, Y, X] = V.meta.shape, n = X * Y, step = Math.max(1, Math.floor(n / 20000)), vals = [];
+  for (let i = 0; i < n; i += step) vals.push(vol[k * n + i]);
+  vals.sort((a, b) => a - b);
+  const lo = vals[Math.floor(vals.length * LOW)], hi = vals[Math.min(vals.length - 1, Math.floor(vals.length * HIGH))];
+  c.black = Math.round(lo); c.white = Math.max(Math.round(hi), c.black + 1);
 }
 // entered or left: the view shows one slice while the step is on, and the slices it showed before once it is left
 function missedView(on) {
   const mcv = document.getElementById('mcv');
   if (on && !st.seen) {
-    st.slab = [V.S.z0, V.S.z1]; st.seen = new Set(); st.since = performance.now();
-    st.slice = 0; st.seen.add(0); V.S.z0 = V.S.z1 = 0; V.redraw();
+    const c = shownChannel();
+    st.slab = [V.S.z0, V.S.z1]; st.levels = c && [c.black, c.white]; st.seen = new Set(); st.since = performance.now();
+    st.slice = 0; st.seen.add(0); V.S.z0 = V.S.z1 = 0; stretch(0); V.redraw();
   } else if (!on && st.seen) {
-    const [z0, z1] = st.slab ?? [0, sliceCount() - 1];
-    V.S.z0 = z0; V.S.z1 = z1; st.seen = null; st.slab = null; V.redraw();
+    const [z0, z1] = st.slab ?? [0, sliceCount() - 1], c = shownChannel();
+    if (c && st.levels) [c.black, c.white] = st.levels;
+    V.S.z0 = z0; V.S.z1 = z1; st.seen = null; st.slab = null; st.levels = null; V.redraw();
   }
   mcv?.classList.toggle('dim', !!on);
   MV.everyDepth(on);
@@ -209,7 +223,8 @@ function junctionCard(m, j) {
     pics.append(wrap);
   }
   const yes = button('Junction', () => answered({ type: 'check-junction', node: j.id, on: true }), 'yes');
-  const no = button('They cross', () => answered({ type: 'split-junction', node: j.id, zScale: V.S.zs }), 'no');
+  // a crossing is a finding, not a rejection: neutral, though J presses it as the box's second answer
+  const no = button('They cross', () => answered({ type: 'split-junction', node: j.id, zScale: V.S.zs }), 'no neutral');
   const unclear = button("Can't tell", () => answered({ type: 'unclear-junction', node: j.id, on: true }), 'unclear');
   yes.title = 'Three or more vessels really meet here'; no.title = 'The vessels only pass each other at different depths: split them';
   unclear.title = 'Neither can be told: kept apart and left out of the score';
@@ -452,7 +467,9 @@ export function open() {
 
 // view: the shell's 3D view; tasks: the shell's list of them; changed() hears every redraw of the tasks; submit() sends them;
 // actions: the shell's keys, which press the tasks' buttons while an area is open (the study's declared actions)
-export function init(view, tasks, changed, submit, actions) {
+// levels(): the channels' black and white points, which the Missed step stretches to each slice
+export function init(view, tasks, changed, submit, actions, levels) {
+  LEVELS = levels;
   V = view; keys = actions; T = tasks; n = T.areas.count(); tools = $('task-tools'); work = $('task-now');
   T.list([], { pick, submit, tagging: tagged });
   T.list(null); st = fresh(); items = null; heard = changed || (() => {});
