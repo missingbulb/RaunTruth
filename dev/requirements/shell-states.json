@@ -373,14 +373,7 @@
             {"name": "Ruler", "select": "#ruler-btn", "control": true, "req": "req/shell/tools/ruler",
               "rule": [
                 {"when": {"view": ["items"]}, "is": "hidden", "req": "req/shell/views/second"},
-                {"when": {"image": ["none"]}, "is": "disabled", "req": "req/shell/image/minimap"}
-              ]
-            },
-            {"name": "Grid", "select": "#grid-btn", "control": true, "req": "req/shell/tools/grid",
-              "rule": [
-                {"when": {"view": ["items"]}, "is": "hidden", "req": "req/shell/views/second"},
-                {"when": {"stack": [true], "shows3d": [true]}, "is": "hidden", "req": "req/shell/viewer-3d"},
-                {"when": {"image": ["none"]}, "is": "disabled", "req": "req/shell/image/minimap"}
+                {"when": {"image": ["none"]}, "is": "disabled", "req": "req/shell/image/idle"}
               ]
             },
             {"name": "Minimap button", "select": "#minimap-btn", "control": true, "req": "req/shell/image/minimap", "steady": "hidden unless a study hands the minimap its areas",
@@ -468,12 +461,12 @@
                     {"when": {"stack": [true], "shows3d": [true]}, "is": "hidden", "req": "req/shell/viewer-3d"}
                   ],
                   "children": [
-                    {"name": "Empty view's text", "select": "#empty", "req": "req/shell/image/minimap",
+                    {"name": "Empty view's text", "select": "#empty", "req": "req/shell/image/idle",
                       "rule": [
                         {"when": {"image": ["local", "preview", "original"]}, "is": "hidden"}
                       ],
                       "children": [
-                        {"name": "Empty view's words", "select": "#empty-text", "req": "req/shell/image/minimap"}
+                        {"name": "The plug for the project", "select": "#plug", "req": "req/shell/image/idle"}
                       ]
                     },
                     {"name": "Image", "select": "#stage", "req": "req/shell/image/minimap",

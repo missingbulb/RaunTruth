@@ -29,11 +29,17 @@ def shrink(plane, side):
     return np.asarray(im.resize((max(1, round(w * k)), max(1, round(h * k))), Image.BOX))
 
 
+MICRONS = ("micron", "um", "\u00b5m")
+
+
 def read(path):
-    """(array as Z, C, Y, X, ImageJ metadata or {})."""
+    """(array as Z, C, Y, X, ImageJ metadata or {}, the pixel width in µm or None)."""
     with tifffile.TiffFile(path) as t:
         s, ij = t.series[0], t.imagej_metadata or {}
         a, axes = s.asarray(), s.axes
+        x = t.pages[0].tags.get("XResolution")
+        x = x.value if x else None
+    um = x[1] / x[0] if x and x[0] and str(ij.get("unit", "")).lower() in MICRONS else None
     for ax in [x for x in axes if x not in "ZCSYX"]:  # the first time point only
         a = np.take(a, 0, axis=axes.index(ax)); axes = axes.replace(ax, "")
     if "S" in axes and "C" not in axes:  # an RGB image's samples are its channels
@@ -41,7 +47,7 @@ def read(path):
     for ax in "ZC":
         if ax not in axes:
             a = a[None]; axes = ax + axes
-    return np.transpose(a, [axes.index(x) for x in "ZCYX"]), ij
+    return np.transpose(a, [axes.index(x) for x in "ZCYX"]), ij, um
 
 
 def colours(ij, C):
@@ -55,7 +61,7 @@ def colours(ij, C):
 
 
 def preview(path):
-    a, ij = read(path)
+    a, ij, um = read(path)
     Z, C = a.shape[:2]
     cols = colours(ij, C)
     if Z == 1:
@@ -68,7 +74,9 @@ def preview(path):
     groups = np.array_split(np.arange(Z), min(Z, SLICES))
     vol = np.stack([np.stack([shrink(a[g, c].max(axis=0), VOL) for c in range(C)]) for g in groups])
     vol = np.stack([stretch(vol[:, c]) for c in range(C)], axis=1)
-    meta = {"kind": "stack", "channels": C, "slices": Z, "colours": cols, "volume": list(vol.shape[:2]) + list(vol.shape[2:])}
+    # the source's pixel width in µm (None when the file does not say) and its width in pixels, for the preview's depth
+    meta = {"kind": "stack", "channels": C, "slices": Z, "colours": cols, "volume": list(vol.shape[:2]) + list(vol.shape[2:]),
+            "width": a.shape[3], "um": um}
     if ij.get("spacing"):
         meta["spacing"] = ij["spacing"]
     return meta, [vol[z, c] for z in range(vol.shape[0]) for c in range(C)]

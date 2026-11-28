@@ -150,8 +150,8 @@ try {
   check(titles.join() === "Title 240x35,Title 260x40,Title 180x180", "each book is read at the turn that reads across, listed in the order found", titles);
   check(await page.evaluate(() => $("#tasks-box").hidden && !$("#summary-box").hidden), "a viewer has no ground-truth box: Summary lists the titles");
   check(await page.evaluate(() => !document.querySelector("#bs-continue") && !document.querySelector("#gt-continue")), "a viewer is offered no ground truth to continue");
-  check(await page.evaluate(() => ["#ruler-btn", "#grid-btn"].every((s) => getComputedStyle($(s)).display === "none") && getComputedStyle($("#zoom-in")).display !== "none"),
-    "a photo has no ruler or grid in the toolbar, its zoom kept (req/shell/image/toolbar)");
+  check(await page.evaluate(() => ["#ruler-btn"].every((s) => getComputedStyle($(s)).display === "none") && getComputedStyle($("#zoom-in")).display !== "none"),
+    "a photo has no ruler in the toolbar, its zoom kept (req/shell/image/toolbar)");
   check(await page.evaluate(() => $("#channels").children.length === 0), "a photo shows no channel rows (req/shell/channels/rows)");
   const m = await saved(page, "#bs-export");
   // Processing has folded once Find books is done

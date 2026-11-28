@@ -42,7 +42,7 @@
     {"family": "folders", "match": {"key": "^#(data-add|gt-setup|setup-(?!rail))"}, "may": ["storage.*", "html.*", "dialog", "url"], "writes": "any"},
     {"family": "settings", "match": {"key": "^#(settings-save|open-settings|settings-)"}, "may": ["settings", "storage.*", "dialog", "html.*", "class.*", "open"], "writes": 0},
     {"family": "zoom", "match": {"key": "^#zoom-(in|out)$"}, "may": ["storage.*"], "writes": 0},
-    {"family": "view tools", "match": {"key": "^#(ruler-btn|grid-btn|minimap-btn|minimap-hide|minimap-fold|switch)$"}, "may": ["storage.*", "settings"], "writes": 0},
+    {"family": "view tools", "match": {"key": "^#(ruler-btn|minimap-btn|minimap-hide|minimap-fold|switch)$"}, "may": ["storage.*", "settings"], "writes": 0},
     {"family": "study switch", "match": {"within": "^study-(list|menu)$"}, "may": ["url", "html.*", "class.*", "storage.*", "dialog", "open"], "writes": 0},
     {"family": "start or load an analysis", "match": {"key": "^#(annotate-|start-(run|cancel)$|load-(go|cancel)$)"}, "may": ["html.*", "class.*", "storage.*", "settings", "dialog", "open", "url"], "writes": 0},
     {"family": "study setup", "match": {"key": "^#open-setup$"}, "may": ["url", "popup", "html.*", "class.*", "storage.*", "dialog", "open", "settings", "signin"], "writes": "any"},

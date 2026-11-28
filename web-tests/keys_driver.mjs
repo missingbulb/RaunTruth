@@ -1,6 +1,6 @@
 // Drives the page (web/) in headless Chromium on the fixture study, with a stand-in worker answering from ANSWERS
-// (tests/test_study_runs.py), its study.json served declaring two actions that mirror the 2D viewer's Ruler and Grid
-// buttons, and checks req/shell/image/keys: the key presses the button, only while it is shown and on, with exactly
+// (tests/test_study_runs.py), its study.json served declaring two actions that mirror the 2D viewer's Ruler and the
+// fixture's Pins buttons, and checks req/shell/image/keys: the key presses the button, only while it is shown and on, with exactly
 // its modifiers, once per press, never while typing in a field or with a menu open; the keys legend at the image's
 // bottom left lists only the actions that act, a toggle's row filled blue while its button is on and a held key's
 // while it is held; and each button carries its key.
@@ -41,7 +41,7 @@ w.studies.fromThisComputer("fixture");
 w.studies.edit("fixture", (m) => {
   m.actions = [
     { id: "ruler", label: "Ruler", keys: ["KeyR"], kind: "toggle", control: "#ruler-btn", legend: true },
-    { id: "grid", label: "Grid", keys: ["Alt+KeyG"], kind: "toggle", control: "#grid-btn", legend: true },
+    { id: "pins", label: "Pins", keys: ["Alt+KeyG"], kind: "toggle", control: "#fx-pins", legend: true },
     // no state of the view: it acts and its button carries its key, with no row in the legend
     { id: "zoom", label: "Zoom in", keys: ["KeyZ"], kind: "press", control: "#zoom-in", legend: false },
     // saying nothing of the legend: refused, never wired
@@ -65,7 +65,7 @@ const legend = () => page.evaluate((blue) => {
   return rows;
 }, BLUE.source);
 const ruler = () => page.evaluate(() => $("#ruler-btn").getAttribute("aria-pressed") === "true");
-const grid = () => page.evaluate(() => $("#grid-btn").getAttribute("aria-pressed") === "true");
+const pins = () => page.evaluate(() => $("#fx-pins").getAttribute("aria-pressed") === "true");
 // a key pressed where the page hears it, on the element given or the page: whether the page kept it to itself
 const press = (code, { on = null, repeat = false, altKey = false, ctrlKey = false } = {}) => page.evaluate(({ code, on, repeat, altKey, ctrlKey }) => {
   const e = new KeyboardEvent("keydown", { code, key: code.replace(/^Key/, "").toLowerCase(), repeat, altKey, ctrlKey, bubbles: true, cancelable: true });
@@ -79,14 +79,14 @@ try {
   await expecting(/unsaid/, async () => {
     page = await device.opens("fixture");
   });
-  // no image: the Ruler and Grid buttons are off, so their keys do nothing and the legend lists neither
+  // no image: the Ruler button is off, so its key does nothing and the legend lists neither
   check((await legend()).length === 0, "with the buttons off the legend lists nothing", await legend());
   check(!(await press("KeyR")) && !(await ruler()), "R does nothing while the Ruler button is off");
 
   await page.setInputFiles("#file", image);
   await page.waitForFunction(() => document.querySelector("#status").textContent === "Image loaded.");
   let rows = await legend();
-  check(rows.map((r) => `${r.label} ${r.key}`).join(", ") === "Ruler R, Grid Alt+G" && rows.every((r) => r.faded && r.beside && r.corner && !r.lit),
+  check(rows.map((r) => `${r.label} ${r.key}`).join(", ") === "Ruler R, Pins Alt+G" && rows.every((r) => r.faded && r.beside && r.corner && !r.lit),
     "the legend lists the actions that act, in the study's order, at the image's bottom left, each key faded beside its label", rows);
   const hint = await page.evaluate(() => ({ text: $("#ruler-btn kbd")?.textContent, keys: $("#ruler-btn").getAttribute("aria-keyshortcuts") }));
   check(hint.text === "R" && hint.keys === "R", "the Ruler button carries its key", hint);
@@ -113,13 +113,11 @@ try {
   await page.waitForFunction(() => !document.querySelector("details.menu").open);
   check(await press("KeyR") && !(await ruler()) && !(await legend())[0].lit, "R again lets Ruler go, its row grey again");
 
-  check(!(await press("KeyG")) && !(await grid()), "G alone is not Alt+G");
-  check(await press("KeyG", { altKey: true }) && (await grid()), "Alt+G presses Grid");
+  check(!(await press("KeyG")) && !(await pins()), "G alone is not Alt+G");
+  check(await press("KeyG", { altKey: true }) && (await pins()), "Alt+G presses Pins");
 
 
-  // a key held fills its row blue until let go; Grid's popup, open since Grid was pressed, closed first, as it takes
-  // the keys while open
-  await page.evaluate(() => document.querySelector(":popover-open")?.hidePopover());
+  // a key held fills its row blue until let go
   await page.keyboard.down("r");
   const held = (await legend())[0].lit;
   // the key held after it acted: its repeats are kept from the page too, and press nothing more

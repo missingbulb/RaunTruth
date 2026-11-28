@@ -10,6 +10,7 @@
 import { readTiff, fromPlanes } from "./tiff_file.js";
 import { fileFields } from "./file_fields.js";
 import { isVsiAlone, pairFiles, readPair } from "./vsi.js";
+import { MICRONS } from "./stack.js";
 
 const LOWER = 0.005, UPPER = 0.998;
 // a robust standard deviation in median absolute deviations, for normal noise, and how many of them a
@@ -20,7 +21,6 @@ const FLAT_DARK = 0.01, FLAT_LIGHT = 0.987;
 // the channels shown at most: each is a plane of the image's size in the page's memory
 export const MOST = 8;
 const RGB = [{ name: "Red", colour: "#ff0000" }, { name: "Green", colour: "#00ff00" }, { name: "Blue", colour: "#0000ff" }];
-const MICRONS = ["micron", "um", "µm"];
 
 // libheif's WebAssembly build, fetched the first time a HEIC is opened
 const LIBHEIF = "https://cdn.jsdelivr.net/npm/libheif-js@1.19.8/libheif-wasm/libheif-bundle.mjs";

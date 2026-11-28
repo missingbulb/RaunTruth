@@ -66,8 +66,7 @@
     "from": [
       "drive"
     ],
-    "accept": ".jpg,.jpeg,.png,.webp,.tif,.tiff,.bmp,.heic,.heif",
-    "empty": "Load a photo of bookshelves (JPEG, PNG, WebP, TIFF or HEIC), then press Start."
+    "accept": ".jpg,.jpeg,.png,.webp,.tif,.tiff,.bmp,.heic,.heif"
   },
   "channels": [
     {
@@ -103,7 +102,6 @@
     "stretch": false,
     "hide": [
       "ruler",
-      "grid",
       "channels"
     ]
   },

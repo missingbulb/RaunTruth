@@ -6,8 +6,9 @@
 
 // what changes between two readings of the same page with nothing done on it
 export const VOLATILE = {
-  // the status bar's measures of the tab, which a switch does not restart: memory, CPU, network, disk
-  subtrees: ["#sb-res-items"],
+  // the status bar's measures of the tab, which a switch does not restart: memory, CPU, network, disk; and the empty
+  // view's plug, chosen afresh on each visit
+  subtrees: ["#sb-res-items", "#plug"],
   // the browser's own reading of what is scrolled out of view, kept on whatever ever animated, to pause it; and the
   // resources block raised by those measures, which a fresh load has not taken yet
   classes: ["offscreen", "raised"],

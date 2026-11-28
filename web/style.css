@@ -147,6 +147,8 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
 #recent .item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 #recent .item .what { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 #recent .name, #recent .where { overflow: hidden; text-overflow: ellipsis; }
+#recent .item .kept { display: contents; }
+#recent .item .kept .offline-mark { margin-left: 0; }
 #recent .where { color: var(--dim); font-size: 11px; }
 .menu .pop .item { text-align: left; border: 0; background: none; padding: 4px 2px; white-space: nowrap; }
 .menu .pop .item:not(:disabled):hover { color: var(--accent); }
@@ -334,6 +336,7 @@ button.tool[aria-pressed=true] { border-color: var(--accent); box-shadow: inset 
 .menu summary { list-style: none; cursor: pointer; padding: 5px 12px; border: 1px solid var(--line); border-radius: var(--r-ctl); background: var(--panel); }
 .menu summary::-webkit-details-marker { display: none; }
 .menu summary::after { content: " ▾"; color: var(--dim); }
+.menu[aria-disabled=true] > summary { opacity: .45; cursor: default; }
 .menu .pop { position: absolute; top: calc(100% + 4px); left: 0; z-index: 20; display: flex; flex-direction: column; gap: 8px; min-width: 170px;
   padding: 10px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-ctl); box-shadow: 0 6px 18px #0004; }
 .menu .pop.right { left: auto; right: 0; }
@@ -371,19 +374,19 @@ button.icon svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-line
 #scroller { flex: 1; display: grid; overflow: auto; position: relative; background: var(--bg); cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
 #scroller canvas, #scroller img { -webkit-user-drag: none; }
 #scroller.dragging, #scroller.dragging #overlay g[data-i] { cursor: grabbing; }
-#empty { color: var(--dim); padding: 40px; text-align: center; }
+#empty { place-self: center; max-width: 34em; padding: 40px; color: var(--dim); text-align: center; text-wrap: balance; }
+#plug { margin: 0; font-size: 15px; }
+#plug a { color: var(--accent); }
+#image-box:not([data-placed]) #load { visibility: hidden; }
 #stage { position: relative; margin: auto; }
 #base { image-rendering: pixelated; display: block; }
 #shrunk { position: absolute; left: 0; top: 0; pointer-events: none; }
 #overlay { position: absolute; left: 0; top: 0; }
-#grid { position: absolute; left: 0; top: 0; pointer-events: none; }
-#grid-pop { position: fixed; inset: auto; padding: 10px 14px; flex-direction: column; gap: 8px; font-size: 13px;
-  background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: var(--r-ctl); box-shadow: 0 6px 18px #0004; }
-#grid-pop:popover-open, #minimap-pop:popover-open { display: flex; }
+#minimap-pop:popover-open { display: flex; }
 /* a toolbar's hover popup, under its button (the popup's anchor), their right edges lined up, turned the other way at the window's edge */
-#grid-pop, #minimap-pop { position-area: bottom span-left; margin: 6px 0 0; position-try-fallbacks: flip-inline; }
-@supports not (anchor-name: --a) { #grid-pop, #minimap-pop { inset: 96px 16px auto auto; } }
-#grid-btn, #minimap-btn { interest-delay: 0s 300ms; }
+#minimap-pop { position-area: bottom span-left; margin: 6px 0 0; position-try-fallbacks: flip-inline; }
+@supports not (anchor-name: --a) { #minimap-pop { inset: 96px 16px auto auto; } }
+#minimap-btn { interest-delay: 0s 300ms; }
 #minimap-pop { position: fixed; inset: auto; padding: 10px 14px; flex-direction: column; gap: 4px; font-size: 13px;
   background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: var(--r-ctl); box-shadow: 0 6px 18px #0004; }
 #minimap-pop label { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
@@ -478,9 +481,6 @@ button.icon svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-line
   80% { transform: scale(1.25); opacity: 1; filter: brightness(1.6) drop-shadow(0 0 6px #fffc); }
   100% { transform: none; opacity: 1; filter: none; }
 }
-#grid-pop label { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
-#grid-colour { width: 32px; height: 22px; padding: 0 2px; }
-#grid-spacing { width: 70px; padding: 2px 6px; }
 #ruler, #v3-ruler { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
 /* above a study's canvas over the stack */
 #v3-ruler { z-index: 1; }
@@ -859,14 +859,14 @@ img.avatar { border-radius: 50%; object-fit: cover; }
 #v3-stage.measuring > canvas { cursor: crosshair; }
 #v3-hud { pointer-events: none; }
 #v3-tools[hidden] { display: none; }
-#view[data-v3] #minimap, #view[data-v3] #grid-btn, #view[data-v3] #minimap-btn { display: none; }
+#view[data-v3] #minimap, #view[data-v3] #minimap-btn { display: none; }
 /* the slices' row: the channels' row with the depth's start and end on a plain track, and the spacing in the colour's place */
 .channel.v3-slices .levels::before { background: var(--line); }
 .channel.v3-slices .v3-spin { display: inline-flex; align-items: stretch; border: 1px solid var(--line); border-radius: var(--r-ctl); background: var(--bg); overflow: hidden; }
 .channel.v3-slices .v3-spin:focus-within { outline: 2px solid var(--accent); outline-offset: -1px; }
-.channel.v3-slices #v3-zs { width: 52px; padding: 1px 3px; font-size: 11px; border: 0; border-radius: 0; background: none; outline: none; }
+.channel.v3-slices #v3-zs { width: 52px; height: auto; padding: 0 5px; font-size: 12px; border: 0; border-radius: 0; background: none; outline: none; }
 .channel.v3-slices .v3-steps { display: flex; flex-direction: column; border-left: 1px solid var(--line); }
-.channel.v3-slices .v3-steps button { flex: 1; padding: 0 3px; border: 0; border-radius: 0; background: none; font-size: 8px; line-height: 1; color: var(--dim); cursor: pointer; }
+.channel.v3-slices .v3-steps button { flex: 1; display: grid; place-items: center; padding: 0 4px; border: 0; border-radius: 0; background: none; font-size: 10px; line-height: 1; color: var(--dim); cursor: pointer; }
 .channel.v3-slices .v3-steps button:hover { color: var(--text); background: var(--line); }
 /* colour by depth, a channel's own: a toggle button, stacked slices on it, beside the colour picker, which is a palette picker
    while it is on; the pair as wide and as tall as the spacing under it, so the column's edges line up */

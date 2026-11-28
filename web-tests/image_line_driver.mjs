@@ -80,9 +80,9 @@ const shot = async (name, sel) => { if (shots) await page.locator(sel).screensho
 const shown = (sel) => page.evaluate((s) => { const e = document.querySelector(s); return !!e && e.getClientRects().length > 0; }, sel);
 const box = (sel) => page.evaluate((s) => { const r = document.querySelector(s).getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; }, sel);
 const mounted = (id) => page.waitForFunction((t) => window.$ && $("#title").textContent === t, id);
-// the selector's rows: name, where, age, whether greyed and selected
+// the selector's rows: name, where, age, whether greyed, selected and marked kept
 const rows = () => page.$$eval("#image-menu .recent", (bs) => bs.map((b) => ({ name: b.querySelector(".name").textContent, where: b.querySelector(".where")?.textContent,
-  age: b.querySelector(".age")?.textContent || "", grey: b.disabled, selected: b.getAttribute("aria-selected") === "true" })));
+  age: b.querySelector(".age")?.textContent || "", grey: b.disabled, selected: b.getAttribute("aria-selected") === "true", kept: !!b.querySelector(".offline-mark") })));
 // the dialog's rows: name, age, whether greyed and marked kept
 const listed = () => page.$$eval("#remote-list .item", (bs) => bs.map((b) => ({ name: b.querySelector(".name").textContent, age: b.querySelector(".age")?.textContent || "",
   grey: b.disabled, kept: !!b.querySelector(".offline-mark"), fresh: b.querySelector(".new")?.title ?? null, meta: b.querySelector(".meta")?.textContent || "" })));
@@ -156,6 +156,7 @@ try {
   check(r.map((x) => x.name).join() === "kept.png,three.png,far.png,undated.png", "the selector lists the study's images opened lately, newest first", r);
   check(r.map((x) => x.age).join() === "<1h,3h,6d,", "each says how long since it was opened, none for one opened before that was kept", r.map((x) => x.age));
   check(r[0].selected && r.slice(1).every((x) => !x.selected), "the last opened is selected");
+  check(r.every((x) => !x.kept), "listed from another device, an image not kept here carries no offline mark", r);
   check(r[1].where.includes("Old"), "each says where it is in Drive", r[1]);
   check(r[1].where.startsWith("Data / ") && !r[1].where.includes("Google Drive"), "from the Data folder, Drive itself being the row's logo", r[1]);
   // the row under the mouse is marked whole, apart from the selected one, as Drive's own lists do
@@ -211,6 +212,18 @@ try {
   check(order.tip === "Available for offline", "the mark carries a tiny tooltip", order);
   check(await page.evaluate((id) => !!JSON.parse(localStorage.getItem("nor-drive-listings") || "{}")[id], ROOT), "the folder's listing is kept on this device");
   await page.click("#remote-dlg button[value=close]");
+  // req/shell/offline/mark: the selector lists what every device opened, so it marks the image kept on this one
+  await page.click("#image-pick");
+  await orMissed(until(page, () => document.querySelector("#image-menu .recent .offline-mark"), null, { timeout: STEP }));
+  r = await rows();
+  check(r.find((x) => x.name === "kept.png").kept && r.filter((x) => x.name !== "kept.png").every((x) => !x.kept), "the selector marks the image kept here, the others nothing", r);
+  const sel = await page.$eval('#image-menu .recent[data-id] .offline-mark', (m) => {
+    const b = m.closest(".recent"), r = (e) => e.getBoundingClientRect();
+    return { tip: m.title, inward: r(m).right <= r(b.querySelector(".age")).left + 1 && r(m).left >= r(b.querySelector(".what")).right - 1 };
+  });
+  check(sel.tip === "Available for offline" && sel.inward, "the same mark, between the image's name and its age", sel);
+  await shot("selector_kept", "#left");
+  await page.keyboard.press("Escape");
 
   await ctx.setOffline(true);
   await page.waitForFunction(() => document.documentElement.classList.contains("offline"));

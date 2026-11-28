@@ -645,8 +645,8 @@ export function dataMode(ctx) {
       for (const [k, s] of todo.entries()) {
         say(`Making previews: ${k + 1} of ${todo.length}, ${s.f.name}…`);
         const got = (await ctx.savedImage(s.f.id)) || (await remote.file(s.f.id, s.f.name));
-        const src = await readImage(got.bytes), spacing = src.ij?.spacing ? +src.ij.spacing : null;
-        made.push({ name: s.f.name, sha256: await ctx.sha256(got.bytes), ...(await makePreview(src, spacing)) });
+        const src = await readImage(got.bytes);
+        made.push({ name: s.f.name, sha256: await ctx.sha256(got.bytes), ...(await makePreview(src)) });
       }
       say(`Saving the previews to ${remote.label}…`);
       const blob = new Blob([await buildPreviews(kept, made)], { type: "image/tiff" });
