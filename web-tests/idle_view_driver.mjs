@@ -11,7 +11,6 @@ import { world } from "./world.mjs";
 import { serveSite, AS_SERVED } from "./site_server.mjs";
 import { held } from "./held.mjs";
 import { orMissed } from "./page_until.mjs";
-import { TAGGER } from "./tagger.mjs";
 
 const [answers, image, studies] = process.argv.slice(2);
 
@@ -32,10 +31,9 @@ const { origin, server } = await serveSite({
 
 const browser = await launch(pw), w = world(browser, origin);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
-w.site.withGoogle();
 // the fixture opening from this computer and from Drive, as the Image Viewer does
 w.studies.edit("fixture", (m) => ({ ...m, files: { ...m.files, from: ["local", "drive"] } }));
-const tagger = w.user(TAGGER).annotates("fixture");
+const tagger = w.tagger("fixture");
 // Drive answers nothing until the test lets it
 const drive = held();
 w.drive.hold = () => drive.hold();
