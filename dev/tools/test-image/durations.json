@@ -213,7 +213,7 @@
 "studies/vascular/tests/test_vessel_model_curve.py::test_fit_keeps_a_curving_path_within_tolerance_with_few_points": 0.2,
 "studies/vascular/tests/test_vessel_model_curve.py::test_python_and_viewer_draw_the_same_curve": 0.0,
 "studies/vascular/tests/test_vessel_tasks_page.py::test_vessel_tasks_page": 0.1,
-"studies/vascular/tests/test_vessel_widths_page.py::test_vessel_widths_page": 0.1,
+"studies/vascular/tests/test_vessel_steps_page.py::test_vessel_steps_page": 0.1,
 "studies/viewer/tests/test_viewer.py::test_a_colour_png_is_red_green_and_blue": 0.1,
 "studies/viewer/tests/test_viewer.py::test_a_flat_image_has_one_slice": 0.1,
 "studies/viewer/tests/test_viewer.py::test_a_grey_image_is_one_grey_channel": 0.1,
